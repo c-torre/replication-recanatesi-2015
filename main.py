@@ -50,7 +50,7 @@ for t in range(t_tot_discrete):
         max_=phi_max,
         period=tau_0,
         t=t,
-        phase_shift=0,  # phase_shift * tau_0,
+        phase_shift=phase_shift*tau_0,
         dt=dt
     )
 
@@ -72,9 +72,9 @@ s = n_per_pattern / n
 
 n_pop = len(unique_patterns)
 
-print("Computing connectivity matrix...")
+print("Computing weights...")
 
-connectivity_matrix = np.zeros((n_pop, n_pop))
+weights = np.zeros((n_pop, n_pop))
 
 for v in tqdm(range(n_pop)):
     for w in range(n_pop):
@@ -84,19 +84,6 @@ for v in tqdm(range(n_pop)):
             sum_ += \
                 (unique_patterns[v, mu] - f) \
                 * (unique_patterns[w, mu] - f)
-
-        connectivity_matrix[v, w] = \
-            relative_excitation * sum_
-
-        if v == w:
-            connectivity_matrix[v, w] = 0
-
-print("Compute SAM connectivity...")
-
-sam_connectivity = np.zeros((n_pop, n_pop))
-for v in tqdm(range(n_pop)):
-
-    for w in range(n_pop):
 
         sum_forward = 0
         for mu in range(p - 1):
@@ -110,21 +97,13 @@ for v in tqdm(range(n_pop)):
                 unique_patterns[v, mu] \
                 * unique_patterns[w, mu - 1]
 
-        sam_connectivity[v, w] = \
-            j_forward * sum_forward \
-            + j_backward * sum_backward
+        initial_weight = \
+            relative_excitation * sum_ + sum_forward + sum_backward
 
-print("Compute weights")
-weights = np.zeros((n_pop, n_pop, t_tot_discrete))
-for v in tqdm(range(n_pop)):
-    for w in range(n_pop):
         for t in range(t_tot_discrete):
-            weights[v, w, t] = connectivity_matrix[v, w] \
-                               + sam_connectivity[v, w] \
-                               + inhibition[t]
+            weights[v, w, t] = initial_weight + inhibition[t]
 
 print("Computing uncorrelated Gaussian noise...")
-# amplitude = xi_0 * s * num_neurons
 
 noise_values = np.zeros((n_pop, t_tot_discrete))
 
@@ -142,22 +121,23 @@ c[unique_patterns[:, first_p] == 1] = r_ini
 
 print("Compute activation for each time step")
 
-firing_rates = np.zeros(n_pop)
-
-average_firing_rates_per_memory = np.zeros((p, t_tot_discrete))
-
 # Update firing rates
-for v in range(n_pop):
+firing_rates = np.zeros(n_pop)
+cond = (c + theta) > 0
+firing_rates[cond] = (c[cond] + theta) ** gamma
+# for v in range(n_pop):
+#
+#     current_v = c[v]
+#
+#     if current_v + theta > 0:
+#         fr_v = (current_v + theta) ** gamma
+#     else:
+#         fr_v = 0
+#
+#     firing_rates[v] = fr_v
 
-    current_v = c[v]
-
-    if current_v + theta > 0:
-        fr_v = (current_v + theta) ** gamma
-    else:
-        fr_v = 0
-
-    firing_rates[v] = fr_v
-
+# For plot
+average_firing_rates_per_memory = np.zeros((p, t_tot_discrete))
 
 for t in tqdm(range(t_tot_discrete)):
 
