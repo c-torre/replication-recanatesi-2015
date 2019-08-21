@@ -38,13 +38,13 @@ r_ini = 1
 first_p = 1  # memory presented first
 
 # General pre-computations
-t_tot_discrete = int(t_tot / dt)
+n_iteration = int(t_tot / dt)
 relative_excitation = kappa / n
 
 print("Computing oscillatory inhibition values...")
 
-phi = np.zeros(t_tot_discrete)
-for t in range(t_tot_discrete):
+phi = np.zeros(n_iteration)
+for t in range(n_iteration):
     phi[t] = sinusoid(
         min_=phi_min,
         max_=phi_max,
@@ -74,7 +74,7 @@ n_pop = len(unique_patterns)
 
 print("Computing weights...")
 
-weights = np.zeros((n_pop, n_pop))
+weights = np.zeros((n_pop, n_pop, n_iteration))
 
 for v in tqdm(range(n_pop)):
     for w in range(n_pop):
@@ -100,19 +100,19 @@ for v in tqdm(range(n_pop)):
         initial_weight = \
             relative_excitation * sum_ + sum_forward + sum_backward
 
-        for t in range(t_tot_discrete):
+        for t in range(n_iteration):
             weights[v, w, t] = initial_weight + inhibition[t]
 
 print("Computing uncorrelated Gaussian noise...")
 
-noise_values = np.zeros((n_pop, t_tot_discrete))
+noise_values = np.zeros((n_pop, n_iteration))
 
 for i in range(n_pop):
 
     noise_values[i] = \
         np.random.normal(loc=0,
                          scale=(xi_0 * n_per_pattern[i]) ** 0.5,
-                         size=t_tot_discrete)
+                         size=n_iteration)
 
 
 print("Present pattern...")
@@ -137,9 +137,9 @@ firing_rates[cond] = (c[cond] + theta) ** gamma
 #     firing_rates[v] = fr_v
 
 # For plot
-average_firing_rates_per_memory = np.zeros((p, t_tot_discrete))
+average_firing_rates_per_memory = np.zeros((p, n_iteration))
 
-for t in tqdm(range(t_tot_discrete)):
+for t in tqdm(range(n_iteration)):
 
     # Update current
     for v in range(n_pop):
