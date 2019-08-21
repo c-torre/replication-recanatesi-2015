@@ -72,6 +72,13 @@ s = n_per_pattern / n
 
 n_pop = len(unique_patterns)
 
+print("Compute who is encoding what...")
+
+encoding = [
+    (unique_patterns[:, mu] == 1).nonzero()[0] for mu in range(p)]
+
+# print([len(encoding[i]) for i in range(len(encoding))])
+
 print("Computing weights...")
 
 weights = np.zeros((n_pop, n_pop, n_iteration))
@@ -105,11 +112,11 @@ for v in tqdm(range(n_pop)):
 
 print("Computing uncorrelated Gaussian noise...")
 
-noise_values = np.zeros((n_pop, n_iteration))
+noise = np.zeros((n_pop, n_iteration))
 
 for i in range(n_pop):
 
-    noise_values[i] = \
+    noise[i] = \
         np.random.normal(loc=0,
                          scale=(xi_0 * n_per_pattern[i]) ** 0.5,
                          size=n_iteration)
@@ -125,16 +132,6 @@ print("Compute activation for each time step")
 firing_rates = np.zeros(n_pop)
 cond = (c + theta) > 0
 firing_rates[cond] = (c[cond] + theta) ** gamma
-# for v in range(n_pop):
-#
-#     current_v = c[v]
-#
-#     if current_v + theta > 0:
-#         fr_v = (current_v + theta) ** gamma
-#     else:
-#         fr_v = 0
-#
-#     firing_rates[v] = fr_v
 
 # For plot
 average_firing_rates_per_memory = np.zeros((p, n_iteration))
@@ -146,7 +143,7 @@ for t in tqdm(range(n_iteration)):
         current_v = c[v]
 
         # First
-        first_term = current_v * (1 - dt)
+        first_term = current_v
 
         # Second
         sum_ = 0
@@ -159,41 +156,30 @@ for t in tqdm(range(n_iteration)):
                 * s[w] \
                 * firing_rates[w]
 
-        second_term = sum_ * dt
+        second_term = sum_
 
         # Third
-        third_term = noise_values[v, t] * dt
+        third_term = noise[v, t]
 
         c[v] = \
-            first_term + second_term + third_term
+            first_term * (1 - dt) + \
+            (second_term + third_term) * dt
 
     # Update firing rates
-    for v in range(n_pop):
+    firing_rates[:] = 0
+    cond = (c + theta) > 0
+    firing_rates[cond] = (c[cond] + theta) ** gamma
 
-        current_v = c[v]
-
-        if current_v + theta > 0:
-            fr_v = (current_v + theta) ** gamma
-        else:
-            fr_v = 0
-
-        firing_rates[v] = fr_v
-
+    # Store firing rate per memory
     for mu in range(p):
-        encoding_mu = (unique_patterns[:, mu] == 1).nonzero()[0]
-        if len(encoding_mu):
-            fr_mu = firing_rates[encoding_mu]
-            mean = np.average(
-                fr_mu,
-                weights=n_per_pattern[encoding_mu])
-        else:
-            mean = 0
+        encoding_mu = encoding[mu]
 
-        average_firing_rates_per_memory[mu, t] = mean
+        average_firing_rates_per_memory[mu, t] = \
+            np.sum(firing_rates[encoding_mu])
 
 
 # Make plots
 plot_activity_image(average_firing_rates_per_memory, dt=dt)
 plot_activity_curve(average_firing_rates_per_memory, dt=dt)
 plot_phi(phi, dt=dt)
-plot_noise(noise_values, dt=dt)
+plot_noise(noise, dt=dt)
