@@ -54,7 +54,8 @@ for t in range(n_iteration):
         dt=dt
     )
 
-inhibition = - phi*relative_excitation*p
+inhibition = - phi*p  # CHANGED took out relative excitation
+# reasoning --> weights
 
 print("Compute memory patterns...")
 
@@ -76,6 +77,8 @@ print("Compute who is encoding what...")
 
 encoding = [
     (unique_patterns[:, mu] == 1).nonzero()[0] for mu in range(p)]
+
+print(len(encoding))
 
 # print([len(encoding[i]) for i in range(len(encoding))])
 
