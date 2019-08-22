@@ -121,7 +121,7 @@ for i in range(n_pop):
 
     noise[i] = \
         np.random.normal(loc=0,
-                         scale=(xi_0 * s[i] * n) ** 0.5,
+                         scale=5000, # (xi_0 * s[i] * n) ** 0.5,
                          size=n_iteration)
 
 print("\n\nBasic info")
@@ -169,6 +169,8 @@ for t in tqdm(range(n_iteration)):
 
         average_firing_rates_per_memory[mu, t] = \
             np.average(fr, weights=n_corresponding)
+
+
 
 # Make plots
 plot_activity_image(average_firing_rates_per_memory, dt=dt)
