@@ -23,8 +23,8 @@ gamma = 2/5
 kappa = 13000
 f = 0.01
 # Inhibition #############
-phi_min = 0.70
-phi_max = 1.06
+phi_min = 0.1  # 0.2  # 0.70
+phi_max = 1.1
 tau_0 = 1
 phase_shift = 0   # 0.5
 # Short term association #
