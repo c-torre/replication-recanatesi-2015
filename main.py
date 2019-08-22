@@ -56,40 +56,19 @@ for t in range(n_iteration):
         dt=dt
     )
 
-inhibition = - phi * relative_excitation * p  # * 3000
-# CHANGED took out relative excitation
-# reasoning --> weights
+inhibition = - phi * relative_excitation * p
 
 print("Compute memory patterns...")
 
-# Unique simplified network attributes
-
 memory_patterns = \
     np.random.choice([0, 1], p=[1 - f, f],
-                     size=(p, n))
+                     size=(n, p))
 
-# memory_patterns = []
-# pbar = tqdm(total=n)
-# while True:
-#     pattern = \
-#         np.random.choice([0, 1], p=[1 - f, f], size=p)
-#     if not np.sum(pattern):
-#         continue
-#     memory_patterns.append(pattern)
-#     pbar.update(1)
-#     if len(memory_patterns) == n:
-#         break
-# pbar.close()
-
-memory_patterns = np.asarray(memory_patterns)
-
-unique_patterns_t, n_per_pattern = \
-    np.unique([tuple(i) for i in memory_patterns], axis=1,
+v_pop, n_per_pop = \
+    np.unique([tuple(i) for i in memory_patterns], axis=0,
               return_counts=True)
 
-v_pop = unique_patterns_t.T
-
-s = n_per_pattern / n
+s = n_per_pop / n
 
 n_pop = len(v_pop)
 
@@ -97,32 +76,6 @@ print("Compute who is encoding what...")
 
 encoding = [
     (v_pop[:, mu] == 1).nonzero()[0] for mu in range(p)]
-
-# print([len(encoding[i]) for i in range(len(encoding))])
-
-# print("A priori")
-#
-# v_cardinal = np.zeros(n_pop)
-# for i in range(n_pop):
-#     for mu in range(p):
-#         v_cardinal[i] += v_pop[i, mu]
-#
-# s_hat = np.zeros(n_pop)
-# for i in range(n_pop):
-#     s_hat[i] = (1-f) ** (p-v_cardinal[i]) * f**(v_cardinal[i])
-#
-# print("s hat", s_hat)
-# print("s", s)
-#
-# fig, ax = plt.subplots()
-#
-# ax.scatter(np.arange(n_pop), s, color="C0", alpha=0.4)
-# ax.scatter(np.arange(n_pop), s_hat, color="C1", alpha=0.4)
-# plt.show()
-#
-# print(v_pop[0])
-#
-# print("v cardinal", v_cardinal)
 
 print("Computing weights without inhibition...")
 
@@ -171,28 +124,9 @@ for i in range(n_pop):
                          scale=(xi_0 * s[i] * n) ** 0.5,
                          size=n_iteration)
 
-# noise = np.zeros((n_pop, n_iteration))
-
-# for i in range(n_pop):
-#
-#     noise[i] = \
-#         np.random.normal(loc=0,
-#                          scale=(xi_0 * s[i]) ** 0.5,
-#                          size=n_iteration)
-
-
-#mean = 0.5
-#span = 0.5
-#noise = np.random.uniform(mean - span, mean + span, (n_pop, n_iteration))
-# noise[:] *= n_per_pattern
-# noise = np.random.normal(loc=0.0, scale=.003, size=(n_pop, n_iteration))
-
 print("\n\nBasic info")
 print("-" * 10)
-print("P", p)
 print("N pop", n_pop)
-print("relative excitation", relative_excitation)
-print("Size unique patterns", v_pop.shape)
 
 print("Present pattern...")
 
@@ -226,23 +160,15 @@ for t in tqdm(range(n_iteration)):
     # Update firing rates
     firing_rates[:] = 0
     cond = (c + theta) > 0
-    # print(cond)
     firing_rates[cond] = (c[cond] + theta) ** gamma
 
-    # print(firing_rates)
-    # print("\n")
-    # Store firing rate per memory
     for mu in range(p):
 
         fr = firing_rates[encoding[mu]]
-        n_corresponding = n_per_pattern[encoding[mu]]
+        n_corresponding = n_per_pop[encoding[mu]]
 
-        # print("fr", fr)
-        # print("n corresponding", n_corresponding)
-        #
         average_firing_rates_per_memory[mu, t] = \
             np.average(fr, weights=n_corresponding)
-
 
 # Make plots
 plot_activity_image(average_firing_rates_per_memory, dt=dt)
@@ -254,5 +180,3 @@ plot_weights(weights_without_inhibition, name='weights_without_inhibition')
 plot_weights(raw_connectivity, name='raw_connectivity')
 plot_weights(forward_connectivity, name='forward_connectivity')
 plot_weights(backward_connectivity, name='backward_connectivity')
-# plt.imshow(weights_without_inhibition)
-# plt.imshow(weights)
