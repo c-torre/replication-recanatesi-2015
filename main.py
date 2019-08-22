@@ -1,5 +1,6 @@
 import numpy as np
 from tqdm import tqdm
+import matplotlib.pyplot as plt
 
 from tools.sinusoid import sinusoid
 from tools.plot import \
@@ -54,7 +55,7 @@ for t in range(n_iteration):
         dt=dt
     )
 
-inhibition = - phi*relative_excitation*p
+inhibition = - phi*relative_excitation*p * 3000
 # CHANGED took out relative excitation
 # reasoning --> weights
 
@@ -113,12 +114,12 @@ print("Computing uncorrelated Gaussian noise...")
 
 noise = np.zeros((n_pop, n_iteration))
 
-# for i in range(n_pop):
-#
-#     noise[i] = \
-#         np.random.normal(loc=0,
-#                          scale=(xi_0 * n_per_pattern[i]) ** 0.5,
-#                          size=n_iteration)
+for i in range(n_pop):
+
+    noise[i] = \
+        np.random.normal(loc=0,
+                         scale=(xi_0 * n_per_pattern[i]) ** 0.5,
+                         size=n_iteration)
 
 
 print("\n\nBasic info")
@@ -173,5 +174,7 @@ for t in tqdm(range(n_iteration)):
 plot_activity_image(average_firing_rates_per_memory, dt=dt)
 plot_activity_curve(average_firing_rates_per_memory, dt=dt)
 plot_inhibition(inhibition, dt=dt)
-plot_phi(phi, dt=dt)
+# plot_phi(phi, dt=dt)
 plot_noise(noise, dt=dt)
+# plt.imshow(weights_without_inhibition)
+# plt.imshow(weights)
