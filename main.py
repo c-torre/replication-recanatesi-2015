@@ -26,7 +26,7 @@ f = 0.01
 phi_min = 0.70
 phi_max = 1.06
 tau_0 = 1
-phase_shift = 0.5
+phase_shift = 0  #  0.5
 # Short term association #
 j_forward = 1500
 j_backward = 400
@@ -110,25 +110,25 @@ for v in tqdm(range(n_pop)):
             unique_patterns[w, mu_backward - 1]
         )
 
-        # sum_backward = 0
-        # for mu in range(1, p):
-        #     sum_backward += \
-        #         unique_patterns[v, mu] \
-        #         * unique_patterns[w, mu - 1]
-        #
-        # weights_without_inhibition[v, w] = \
-        #     relative_excitation * sum_ + sum_forward + sum_backward
-
 raw_connectivity *= relative_excitation
 forward_connectivity *= j_forward
 backward_connectivity *= j_backward
 
 weights_without_inhibition = \
     raw_connectivity \
-    + forward_connectivity \
-    + backward_connectivity
+    # + forward_connectivity \
+    # + backward_connectivity
 
 print("Computing uncorrelated Gaussian noise...")
+
+# noise = np.zeros((n_pop, n_iteration))
+
+# for i in range(n_pop):
+#
+#     noise[i] = \
+#         np.random.normal(loc=0,
+#                          scale=(xi_0 * n_per_pattern[i]) ** 0.5,
+#                          size=n_iteration)
 
 noise = np.zeros((n_pop, n_iteration))
 
@@ -136,16 +136,22 @@ for i in range(n_pop):
 
     noise[i] = \
         np.random.normal(loc=0,
-                         scale=(xi_0 * n_per_pattern[i]) ** 0.5,
+                         scale=(xi_0 * s[i]) ** 0.5,
                          size=n_iteration)
 
+
+#mean = 0.5
+#span = 0.5
+#noise = np.random.uniform(mean - span, mean + span, (n_pop, n_iteration))
+# noise[:] *= n_per_pattern
+# noise = np.random.normal(loc=0.0, scale=.003, size=(n_pop, n_iteration))
 
 print("\n\nBasic info")
 print("-" * 10)
 print("P", p)
 print("N pop", n_pop)
 print("relative excitation", relative_excitation)
-print()
+print("Size unique patterns", unique_patterns.shape)
 
 print("Present pattern...")
 
@@ -181,14 +187,22 @@ for t in tqdm(range(n_iteration)):
     # Update firing rates
     firing_rates[:] = 0
     cond = (c + theta) > 0
+    # print(cond)
     firing_rates[cond] = (c[cond] + theta) ** gamma
 
+    # print(firing_rates)
+    # print("\n")
     # Store firing rate per memory
     for mu in range(p):
-        encoding_mu = encoding[mu]
 
+        fr = firing_rates[encoding[mu]]
+        n_corresponding = n_per_pattern[encoding[mu]]
+
+        # print("fr", fr)
+        # print("n corresponding", n_corresponding)
+        #
         average_firing_rates_per_memory[mu, t] = \
-            np.average(firing_rates[encoding_mu])
+            np.average(fr, weights=n_corresponding)
 
 
 # Make plots
@@ -197,6 +211,9 @@ plot_activity_curve(average_firing_rates_per_memory, dt=dt)
 plot_inhibition(inhibition, dt=dt)
 plot_phi(phi, dt=dt)
 plot_noise(noise, dt=dt)
-plot_weights(weights_without_inhibition)
+plot_weights(weights_without_inhibition, name='weights_without_inhibition')
+plot_weights(raw_connectivity, name='raw_connectivity')
+plot_weights(forward_connectivity, name='forward_connectivity')
+plot_weights(backward_connectivity, name='backward_connectivity')
 # plt.imshow(weights_without_inhibition)
 # plt.imshow(weights)
