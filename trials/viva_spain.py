@@ -26,7 +26,7 @@ f = 0.01
 phi_min = 0.70
 phi_max = 1.06
 tau_0 = 1
-phase_shift = 0   # 0.5
+phase_shift = 0
 # Short term association #
 j_forward = 1500
 j_backward = 400
@@ -115,20 +115,20 @@ weights_without_inhibition = \
 
 print("Computing uncorrelated Gaussian noise...")
 
-noise = np.zeros((n_pop, n_iteration))
+noise = np.zeros((n_pop, n_iteration)) #+ 5000
 
-# for i in range(n_pop):
-#
-#     noise[i] = 0 * \
-#         np.random.normal(loc=0,
-#                          scale=(xi_0 * s[i] * n) ** 0.5,
-#                          size=n_iteration)
-#
-# print("\n\nBasic info")
-# print("-" * 10)
-# print("N pop", n_pop)
-#
-# print("Present pattern...")
+for i in range(n_pop):
+
+    noise[i] = \
+        np.random.normal(loc=0,
+                         scale=(xi_0 * s[i] * n) ** 0.5,
+                         size=n_iteration)
+
+print("\n\nBasic info")
+print("-" * 10)
+print("N pop", n_pop)
+
+print("Present pattern...")
 
 # Update firing rates
 firing_rates = np.zeros(n_pop)
@@ -175,7 +175,7 @@ plot_activity_image(average_firing_rates_per_memory, dt=dt)
 plot_activity_curve(average_firing_rates_per_memory, dt=dt)
 plot_inhibition(inhibition, dt=dt)
 # plot_phi(phi, dt=dt)
-# plot_noise(noise, dt=dt)
+plot_noise(noise, dt=dt)
 plot_weights(weights_without_inhibition, name='weights_without_inhibition')
 # plot_weights(raw_connectivity, name='raw_connectivity')
 # plot_weights(forward_connectivity, name='forward_connectivity')

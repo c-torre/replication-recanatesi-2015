@@ -119,7 +119,7 @@ noise = np.zeros((n_pop, n_iteration))
 
 for i in range(n_pop):
 
-    noise[i] = 0 * \
+    noise[i] = \
         np.random.normal(loc=0,
                          scale=(xi_0 * s[i] * n) ** 0.5,
                          size=n_iteration)
