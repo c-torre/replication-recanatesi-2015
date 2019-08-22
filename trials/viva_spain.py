@@ -31,7 +31,7 @@ phase_shift = 0   # 0.5
 j_forward = 1500
 j_backward = 400
 # Time ###################
-t_tot = 2#0  # 450!!!
+t_tot = 2 # 450!!!
 dt = 0.001
 # Noise #####
 xi_0 = 65
@@ -80,11 +80,11 @@ encoding = [
 print("Computing weights without inhibition...")
 
 raw_connectivity = np.zeros((n_pop, n_pop))
-forward_connectivity = np.zeros((n_pop, n_pop))
-backward_connectivity = np.zeros((n_pop, n_pop))
+# forward_connectivity = np.zeros((n_pop, n_pop))
+# backward_connectivity = np.zeros((n_pop, n_pop))
 
-mu_forward = np.arange(p-1)
-mu_backward = np.arange(1, p)
+# mu_forward = np.arange(p-1)
+# mu_backward = np.arange(1, p)
 
 for v in tqdm(range(n_pop)):
     for w in range(n_pop):
@@ -94,24 +94,24 @@ for v in tqdm(range(n_pop)):
             * (v_pop[w, :] )
         )
 
-        forward_connectivity[v, w] = np.sum(
-            v_pop[v, mu_forward] *
-            v_pop[w, mu_forward + 1]
-        )
-
-        backward_connectivity[v, w] = np.sum(
-            v_pop[v, mu_backward] *
-            v_pop[w, mu_backward - 1]
-        )
+        # forward_connectivity[v, w] = np.sum(
+        #     v_pop[v, mu_forward] *
+        #     v_pop[w, mu_forward + 1]
+        # )
+        #
+        # backward_connectivity[v, w] = np.sum(
+        #     v_pop[v, mu_backward] *
+        #     v_pop[w, mu_backward - 1]
+        # )
 
 raw_connectivity *= relative_excitation
-forward_connectivity *= j_forward
-backward_connectivity *= j_backward
+# forward_connectivity *= j_forward
+# backward_connectivity *= j_backward
 
 weights_without_inhibition = \
-    raw_connectivity \
-    + forward_connectivity \
-    + backward_connectivity
+    raw_connectivity# \
+    # + forward_connectivity \
+    # + backward_connectivity
 
 print("Computing uncorrelated Gaussian noise...")
 
