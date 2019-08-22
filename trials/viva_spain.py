@@ -56,7 +56,7 @@ for t in range(n_iteration):
         dt=dt
     )
 
-inhibition = - phi * relative_excitation * p * 0
+inhibition = - phi * relative_excitation * p
 
 print("Compute memory patterns...")
 
@@ -90,8 +90,8 @@ for v in tqdm(range(n_pop)):
     for w in range(n_pop):
 
         raw_connectivity[v, w] = np.sum(
-            (v_pop[v, :] )
-            * (v_pop[w, :] )
+            (v_pop[v, :])
+            * (v_pop[w, :])
         )
 
         # forward_connectivity[v, w] = np.sum(
@@ -117,18 +117,18 @@ print("Computing uncorrelated Gaussian noise...")
 
 noise = np.zeros((n_pop, n_iteration))
 
-for i in range(n_pop):
-
-    noise[i] = 0 * \
-        np.random.normal(loc=0,
-                         scale=(xi_0 * s[i] * n) ** 0.5,
-                         size=n_iteration)
-
-print("\n\nBasic info")
-print("-" * 10)
-print("N pop", n_pop)
-
-print("Present pattern...")
+# for i in range(n_pop):
+#
+#     noise[i] = 0 * \
+#         np.random.normal(loc=0,
+#                          scale=(xi_0 * s[i] * n) ** 0.5,
+#                          size=n_iteration)
+#
+# print("\n\nBasic info")
+# print("-" * 10)
+# print("N pop", n_pop)
+#
+# print("Present pattern...")
 
 # Update firing rates
 firing_rates = np.zeros(n_pop)
@@ -174,9 +174,9 @@ for t in tqdm(range(n_iteration)):
 plot_activity_image(average_firing_rates_per_memory, dt=dt)
 plot_activity_curve(average_firing_rates_per_memory, dt=dt)
 plot_inhibition(inhibition, dt=dt)
-plot_phi(phi, dt=dt)
-plot_noise(noise, dt=dt)
+# plot_phi(phi, dt=dt)
+# plot_noise(noise, dt=dt)
 plot_weights(weights_without_inhibition, name='weights_without_inhibition')
-plot_weights(raw_connectivity, name='raw_connectivity')
-plot_weights(forward_connectivity, name='forward_connectivity')
-plot_weights(backward_connectivity, name='backward_connectivity')
+# plot_weights(raw_connectivity, name='raw_connectivity')
+# plot_weights(forward_connectivity, name='forward_connectivity')
+# plot_weights(backward_connectivity, name='backward_connectivity')

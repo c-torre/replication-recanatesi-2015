@@ -56,7 +56,7 @@ for t in range(n_iteration):
         dt=dt
     )
 
-inhibition = - phi * relative_excitation * p * 0
+inhibition = - phi * relative_excitation * p
 
 print("Compute memory patterns...")
 
