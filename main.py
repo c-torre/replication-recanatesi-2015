@@ -5,7 +5,8 @@ import matplotlib.pyplot as plt
 from tools.sinusoid import sinusoid
 from tools.plot import \
     plot_phi, plot_noise, \
-    plot_activity_curve, plot_activity_image, plot_inhibition
+    plot_activity_curve, plot_activity_image, plot_inhibition, \
+    plot_weights
 
 np.seterr(all='raise')
 np.random.seed(1234)
@@ -25,7 +26,7 @@ f = 0.01
 phi_min = 0.70
 phi_max = 1.06
 tau_0 = 1
-phase_shift = 0.0
+phase_shift = 0.5
 # Short term association #
 j_forward = 1500
 j_backward = 400
@@ -55,7 +56,7 @@ for t in range(n_iteration):
         dt=dt
     )
 
-inhibition = - phi*relative_excitation*p * 3000
+inhibition = - phi * relative_excitation * p  # * 3000
 # CHANGED took out relative excitation
 # reasoning --> weights
 
@@ -84,31 +85,48 @@ encoding = [
 
 print("Computing weights without inhibition...")
 
-weights_without_inhibition = np.zeros((n_pop, n_pop))
+raw_connectivity = np.zeros((n_pop, n_pop))
+forward_connectivity = np.zeros((n_pop, n_pop))
+backward_connectivity = np.zeros((n_pop, n_pop))
+
+mu_forward = np.arange(p-1)
+mu_backward = np.arange(1, p)
 
 for v in tqdm(range(n_pop)):
     for w in range(n_pop):
 
-        sum_ = 0
-        for mu in range(p):
-            sum_ += \
-                (unique_patterns[v, mu] - f) \
-                * (unique_patterns[w, mu] - f)
+        raw_connectivity[v, w] = np.sum(
+            (unique_patterns[v, :] - f)
+            * (unique_patterns[w, :] - f)
+        )
 
-        sum_forward = 0
-        for mu in range(p - 1):
-            sum_forward += \
-                unique_patterns[v, mu] \
-                * unique_patterns[w, mu + 1]
+        forward_connectivity[v, w] = np.sum(
+            unique_patterns[v, mu_forward] *
+            unique_patterns[w, mu_forward+1]
+        )
 
-        sum_backward = 0
-        for mu in range(1, p):
-            sum_backward += \
-                unique_patterns[v, mu] \
-                * unique_patterns[w, mu - 1]
+        backward_connectivity[v, w] = np.sum(
+            unique_patterns[v, mu_backward] *
+            unique_patterns[w, mu_backward - 1]
+        )
 
-        weights_without_inhibition[v, w] = \
-            relative_excitation * sum_ + sum_forward + sum_backward
+        # sum_backward = 0
+        # for mu in range(1, p):
+        #     sum_backward += \
+        #         unique_patterns[v, mu] \
+        #         * unique_patterns[w, mu - 1]
+        #
+        # weights_without_inhibition[v, w] = \
+        #     relative_excitation * sum_ + sum_forward + sum_backward
+
+raw_connectivity *= relative_excitation
+forward_connectivity *= j_forward
+backward_connectivity *= j_backward
+
+weights_without_inhibition = \
+    raw_connectivity \
+    + forward_connectivity \
+    + backward_connectivity
 
 print("Computing uncorrelated Gaussian noise...")
 
@@ -133,7 +151,10 @@ print("Present pattern...")
 
 # Update firing rates
 firing_rates = np.zeros(n_pop)
-firing_rates[unique_patterns[:, first_p] == 1] = r_ini
+firing_rates[encoding[first_p]] = r_ini
+
+print(firing_rates)
+print(np.average(firing_rates[encoding[first_p]]))
 
 print("Compute activation for each time step")
 
@@ -167,14 +188,15 @@ for t in tqdm(range(n_iteration)):
         encoding_mu = encoding[mu]
 
         average_firing_rates_per_memory[mu, t] = \
-            np.sum(firing_rates[encoding_mu])
+            np.average(firing_rates[encoding_mu])
 
 
 # Make plots
 plot_activity_image(average_firing_rates_per_memory, dt=dt)
 plot_activity_curve(average_firing_rates_per_memory, dt=dt)
 plot_inhibition(inhibition, dt=dt)
-# plot_phi(phi, dt=dt)
+plot_phi(phi, dt=dt)
 plot_noise(noise, dt=dt)
+plot_weights(weights_without_inhibition)
 # plt.imshow(weights_without_inhibition)
 # plt.imshow(weights)

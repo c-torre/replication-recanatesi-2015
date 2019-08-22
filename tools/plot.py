@@ -101,3 +101,17 @@ def plot_inhibition(inhibition, dt=1.):
     ax.set_ylabel("Inhibition")
 
     plt.savefig(os.path.join(FIG_FOLDER, 'inhibition.pdf'))
+
+
+def plot_weights(weights):
+
+    fig, ax = plt.subplots()
+
+    ax.set_xlabel('v')
+    ax.set_ylabel('w')
+
+    im = ax.imshow(weights)
+
+    fig.colorbar(im, ax=ax)
+
+    plt.savefig(os.path.join(FIG_FOLDER, 'weights.pdf'))
