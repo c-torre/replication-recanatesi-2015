@@ -4,7 +4,7 @@ from tqdm import tqdm
 from tools.sinusoid import sinusoid
 from tools.plot import \
     plot_phi, plot_noise, \
-    plot_activity_curve, plot_activity_image
+    plot_activity_curve, plot_activity_image, plot_inhibition
 
 np.seterr(all='raise')
 np.random.seed(1234)
@@ -113,15 +113,19 @@ print("Computing uncorrelated Gaussian noise...")
 
 noise = np.zeros((n_pop, n_iteration))
 
-for i in range(n_pop):
+# for i in range(n_pop):
+#
+#     noise[i] = \
+#         np.random.normal(loc=0,
+#                          scale=(xi_0 * n_per_pattern[i]) ** 0.5,
+#                          size=n_iteration)
 
-    noise[i] = \
-        np.random.normal(loc=0,
-                         scale=(xi_0 * n_per_pattern[i]) ** 0.5,
-                         size=n_iteration)
 
-
-print("\nBasic info")
+print("\n\nBasic info")
+print("-" * 10)
+print("P", p)
+print("N pop", n_pop)
+print("relative excitation", relative_excitation)
 print()
 
 print("Present pattern...")
@@ -168,5 +172,6 @@ for t in tqdm(range(n_iteration)):
 # Make plots
 plot_activity_image(average_firing_rates_per_memory, dt=dt)
 plot_activity_curve(average_firing_rates_per_memory, dt=dt)
+plot_inhibition(inhibition, dt=dt)
 plot_phi(phi, dt=dt)
 plot_noise(noise, dt=dt)

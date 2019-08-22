@@ -84,3 +84,20 @@ def plot_activity_image(firing_rates, dt=1.):
     plt.tight_layout()
 
     plt.savefig(os.path.join(FIG_FOLDER, 'activity_image.pdf'))
+
+
+def plot_inhibition(inhibition, dt=1.):
+
+    fig, ax = plt.subplots()
+
+    n_iteration = len(inhibition)
+
+    x = np.arange(n_iteration, dtype=float) * dt
+    y = inhibition
+
+    ax.plot(x, y)
+
+    ax.set_xlabel("Time (cycles)")
+    ax.set_ylabel("Inhibition")
+
+    plt.savefig(os.path.join(FIG_FOLDER, 'inhibition.pdf'))
