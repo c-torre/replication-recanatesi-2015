@@ -54,7 +54,8 @@ for t in range(n_iteration):
         dt=dt
     )
 
-inhibition = - phi*p  # CHANGED took out relative excitation
+inhibition = - phi*relative_excitation*p
+# CHANGED took out relative excitation
 # reasoning --> weights
 
 print("Compute memory patterns...")
@@ -78,13 +79,11 @@ print("Compute who is encoding what...")
 encoding = [
     (unique_patterns[:, mu] == 1).nonzero()[0] for mu in range(p)]
 
-print(len(encoding))
-
 # print([len(encoding[i]) for i in range(len(encoding))])
 
-print("Computing weights...")
+print("Computing weights without inhibition...")
 
-weights = np.zeros((n_pop, n_pop, n_iteration))
+weights_without_inhibition = np.zeros((n_pop, n_pop))
 
 for v in tqdm(range(n_pop)):
     for w in range(n_pop):
@@ -107,11 +106,8 @@ for v in tqdm(range(n_pop)):
                 unique_patterns[v, mu] \
                 * unique_patterns[w, mu - 1]
 
-        initial_weight = \
+        weights_without_inhibition[v, w] = \
             relative_excitation * sum_ + sum_forward + sum_backward
-
-        for t in range(n_iteration):
-            weights[v, w, t] = initial_weight + inhibition[t]
 
 print("Computing uncorrelated Gaussian noise...")
 
@@ -125,48 +121,36 @@ for i in range(n_pop):
                          size=n_iteration)
 
 
-print("Present pattern...")
-c = np.zeros(n_pop)
-c[unique_patterns[:, first_p] == 1] = r_ini
+print("\nBasic info")
+print()
 
-print("Compute activation for each time step")
+print("Present pattern...")
 
 # Update firing rates
 firing_rates = np.zeros(n_pop)
-cond = (c + theta) > 0
-firing_rates[cond] = (c[cond] + theta) ** gamma
+firing_rates[unique_patterns[:, first_p] == 1] = r_ini
+
+print("Compute activation for each time step")
+
+# Initialize currents
+c = np.zeros(n_pop)
 
 # For plot
 average_firing_rates_per_memory = np.zeros((p, n_iteration))
 
 for t in tqdm(range(n_iteration)):
 
+    weights = weights_without_inhibition + inhibition[t]
+
     # Update current
     for v in range(n_pop):
-        current_v = c[v]
 
-        # First
-        first_term = current_v
-
-        # Second
-        sum_ = 0
-        for w in range(n_pop):
-
-            current_w = c[w]
-
-            sum_ += \
-                weights[v, w, t] \
-                * s[w] \
-                * firing_rates[w]
-
-        second_term = sum_
-
-        # Third
-        third_term = noise[v, t]
+        # Compute input
+        input_v = np.sum(weights[v, :] * s[:] * firing_rates[:])
 
         c[v] = \
-            first_term * (1 - dt) + \
-            (second_term + third_term) * dt
+            c[v] * (1 - dt) + \
+            (input_v + noise[v, t]) * dt
 
     # Update firing rates
     firing_rates[:] = 0
