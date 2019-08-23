@@ -39,8 +39,8 @@ xi_0 = 65
 r_ini = 1
 first_p = 7  # memory presented first
 
-no_noise = True
-no_fancy_connection = True
+no_noise = False
+no_fancy_connection = False
 
 # General pre-computations
 n_iteration = int(t_tot / dt)
