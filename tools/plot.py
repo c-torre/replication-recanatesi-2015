@@ -136,3 +136,20 @@ def plot_current_curve(currents, dt=1., name="current"):
     ax.set_title(f"{name}")
 
     plt.savefig(os.path.join(FIG_FOLDER, f"{name}.pdf"))
+
+
+def plot_romani(activity):
+
+    fig, ax = plt.subplots()
+    im = ax.imshow(activity, aspect='auto',
+                   cmap='jet')
+    fig.colorbar(im, ax=ax)
+
+    ax.set_xlabel('Time')
+    ax.set_ylabel("Memories")
+
+    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+
+    fig.tight_layout()
+
+    plt.show()

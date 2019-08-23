@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -6,7 +7,10 @@ from tools.sinusoid import sinusoid
 from tools.plot import \
     plot_phi, plot_noise, \
     plot_activity_curve, plot_activity_image, plot_inhibition, \
-    plot_weights
+    plot_weights, plot_current_curve
+
+FIG_FOLDER = 'fig'
+os.makedirs(FIG_FOLDER, exist_ok=True)
 
 np.seterr(all='raise')
 np.random.seed(123)
@@ -23,30 +27,36 @@ gamma = 2/5
 kappa = 13000
 f = 0.01
 # Inhibition #############
-phi_min = 0.70
-phi_max = 1.06
+phi_min = 0.7   # 0.7  # 0.2  # 0.70
+phi_max = 1.06   # 1.06
 tau_0 = 1
-phase_shift = 0   # 0.5
+phase_shift = 0.75   # 0.5
 # Short term association #
-j_forward = 1500
-j_backward = 400
+j_forward = 1500  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+j_backward = 400   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 # Time ###################
-t_tot = 2#0  # 450!!!
+t_tot = 4  # 450!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 dt = 0.001
 # Noise #####
 xi_0 = 65
 # Initialization #########
 r_ini = 1
-first_p = 1  # memory presented first
+first_p = 7  # memory presented first
+
+magic_number_noise = 10
+
+no_noise = False
+no_fancy_connection = False
 
 # General pre-computations
-n_iteration = int(t_tot / dt)
+n_iter = int(t_tot / dt)
 relative_excitation = kappa / n
+time_param = dt/tau
 
 print("Computing oscillatory inhibition values...")
 
-phi = np.zeros(n_iteration)
-for t in range(n_iteration):
+phi = np.zeros(n_iter)
+for t in range(n_iter):
     phi[t] = sinusoid(
         min_=phi_min,
         max_=phi_max,
@@ -56,7 +66,7 @@ for t in range(n_iteration):
         dt=dt
     )
 
-inhibition = - phi * relative_excitation * p
+inhibition = - phi
 
 print("Compute memory patterns...")
 
@@ -90,8 +100,8 @@ for v in tqdm(range(n_pop)):
     for w in range(n_pop):
 
         raw_connectivity[v, w] = np.sum(
-            (v_pop[v, :] )
-            * (v_pop[w, :] )
+            (v_pop[v, :] - f)
+            * (v_pop[w, :] - f)
         )
 
         forward_connectivity[v, w] = np.sum(
@@ -104,9 +114,19 @@ for v in tqdm(range(n_pop)):
             v_pop[w, mu_backward - 1]
         )
 
-raw_connectivity *= relative_excitation
+# Put factors ============================
+
+raw_connectivity *= kappa
 forward_connectivity *= j_forward
 backward_connectivity *= j_backward
+inhibition *= kappa
+
+# ========================================
+
+if no_fancy_connection:
+    print("NO FANCY CONNECTION")
+    forward_connectivity[:] = 0
+    backward_connectivity[:] = 0
 
 weights_without_inhibition = \
     raw_connectivity \
@@ -115,47 +135,58 @@ weights_without_inhibition = \
 
 print("Computing uncorrelated Gaussian noise...")
 
-noise = np.zeros((n_pop, n_iteration))
+noise = np.zeros((n_pop, n_iter))
 
 for i in range(n_pop):
-
     noise[i] = \
         np.random.normal(loc=0,
-                         scale=(xi_0 * s[i] * n) ** 0.5,
-                         size=n_iteration)
+                         scale=(xi_0 * n_per_pop[i]) ** 0.5,
+                         size=n_iter) \
+        / n_per_pop[i] * magic_number_noise
+
+if no_noise:
+    print("NO NOISE")
+    noise[:] = 0
 
 print("\n\nBasic info")
 print("-" * 10)
 print("N pop", n_pop)
+print("-" * 10)
 
 print("Present pattern...")
 
-# Update firing rates
+# Initialize firing rates
 firing_rates = np.zeros(n_pop)
 firing_rates[encoding[first_p]] = r_ini
 
-c_ini = r_ini ** (1/gamma) - theta
+# initialize current
 c = np.zeros(n_pop)
+c_ini = r_ini ** (1/gamma) - theta
 c[encoding[first_p]] = c_ini
 
 print("Compute activation for each time step")
 
 # For plot
-average_firing_rates_per_memory = np.zeros((p, n_iteration))
+average_firing_rates_per_memory = np.zeros((p, n_iter))
 
-for t in tqdm(range(n_iteration)):
+currents = np.zeros((n_pop, n_iter))
 
-    weights = weights_without_inhibition + inhibition[t]
+currents_memory = np.zeros((p, n_iter))
+
+for t in tqdm(range(n_iter)):
 
     # Update current
     for v in range(n_pop):
 
-        # Compute input
-        input_v = np.sum(weights[v, :] * s[:] * firing_rates[:])
+        # Compute weights
+        weights = (weights_without_inhibition[v, :] + inhibition[t]) / n
 
-        c[v] = \
-            c[v] * (1 - dt / tau) + \
-            (input_v + noise[v, t]) * dt / tau
+        # Compute input
+        input_v = np.sum(weights[:] * n_per_pop[:] * firing_rates[:])
+
+        c[v] += time_param * (-c[v] + input_v + noise[v, t])
+
+        currents[v, t] = c[v]
 
     # Update firing rates
     firing_rates[:] = 0
@@ -170,6 +201,11 @@ for t in tqdm(range(n_iteration)):
         average_firing_rates_per_memory[mu, t] = \
             np.average(fr, weights=n_corresponding)
 
+        c_mu = c[encoding[mu]]
+
+        currents_memory[mu, t] = \
+            np.average(c_mu, weights=n_corresponding)
+
 # Make plots
 plot_activity_image(average_firing_rates_per_memory, dt=dt)
 plot_activity_curve(average_firing_rates_per_memory, dt=dt)
@@ -180,3 +216,5 @@ plot_weights(weights_without_inhibition, name='weights_without_inhibition')
 plot_weights(raw_connectivity, name='raw_connectivity')
 plot_weights(forward_connectivity, name='forward_connectivity')
 plot_weights(backward_connectivity, name='backward_connectivity')
+plot_current_curve(currents, dt=dt, name="currents_population")
+plot_current_curve(currents_memory, dt=dt, name="currents_memory")

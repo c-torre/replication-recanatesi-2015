@@ -1,14 +1,12 @@
-import pickle
-import os
-
 import numpy as np
 from tqdm import tqdm
-import matplotlib.pyplot as plt
-import multiprocessing as mp
-import itertools as it
-from matplotlib.ticker import MaxNLocator
+
+from tools.sinusoid import sinusoid
+from tools.plot import plot_romani
 
 np.seterr(all='raise')
+
+# Parameters ===================================================
 
 L = 16
 N = 3000
@@ -21,181 +19,77 @@ t_max = 1000
 f = 0.1
 phase_shift = 0.0
 first_p = 0
+D_th = 1.9 * T
 seed = 123
 
+# ==============================================================
 
+phase_shift = phase_shift
+first_p = first_p
 
-class Network:
+J = np.zeros((N, N))
+V = np.zeros(N)
 
-    def __init__(self,
-                 L=16,
-                 N=3000,
-                 T=0.015,
-                 T_th=45,
-                 T_j0=25,
-                 J_0_min=0.7,
-                 J_0_max=1.2,
-                 t_max=1000,
-                 f=0.1,
-                 phase_shift=0.0,
-                 first_p=0,
-                 seed=123):
+xi = np.random.choice([0, 1], p=[1 - f, f], size=(N, L))
 
-        np.random.seed(seed)
+th = np.random.uniform(-T, T, size=N)
 
-        self.L = L
-        self.N = N
-        self.T = T
-        self.T_th = T_th
-        self.T_j0 = T_j0
-        self.J_0_min = J_0_min
-        self.J_0_max = J_0_max
-        self.f = f
-        self.t_max = t_max
+first_th = th.copy()
 
-        self.D_th = 1.9 * T
-        self.phase_shift = phase_shift
-        self.first_p = first_p
+previous_V = np.zeros(N)
 
-        self.J = np.zeros((self.N, self.N))
-        self.V = np.zeros(self.N)
+population_activity = np.zeros((L, t_max))
 
-        # Phi-like parameter
-        self.J_0 = None
+idx_neuron = np.arange(N)
 
-        self.xi = \
-            np.random.choice([0, 1], p=[1 - self.f, self.f],
-                             size=(self.L, self.N))
+n_factor = 1 / (N * f * (1-f))
 
-        self.th = \
-            np.random.uniform(-self.T, self.T, size=self.N)
+print('Building the connections...')
 
-        self.first_th = self.th.copy()
+for i in tqdm(range(N)):
+    for j in range(N):
+        sum_ = np.sum((xi[i, :] - f) * (xi[j, :] - f))
+        J[i, j] = sum_ * n_factor
 
-        self.previous_V = np.zeros(self.N)
+print('Present pattern...')
 
-        self.population_activity = \
-            np.zeros((self.L, self.t_max))
+V[:] = xi[:, first_p]
 
-        self.idx_neuron = np.arange(self.N)
+print('Main loop...')
+for t in tqdm(range(t_max)):
 
-        self.n_factor = 1 / \
-            (
-                self.N * self.f * (1-self.f)
-            )
+    # Update inhibition =======================================
+    J_0 = sinusoid(
+        min_=J_0_min,
+        max_=J_0_max,
+        period=T_j0,
+        phase_shift=phase_shift * T_j0,
+        t=t
+    )
 
-    @staticmethod
-    def sinusoid(min_, max_, period, t, phase_shift):
+    # Update activity ==========================================
 
-        amplitude = (max_ - min_) / 2
-        frequency = (1 / period)  # * self.pr.dt
-        # phase = np.random.choice()
-        shift = min_ + amplitude  # Moves the wave in the y-axis
+    previous_V = V.copy()
 
-        return \
-            amplitude \
-            * np.sin(2 * np.pi * (t + phase_shift) * frequency) \
-            + shift
+    second_sum_ = np.sum(previous_V)
+    multiplier = J_0 / (N * f)
 
-    @staticmethod
-    def heaviside(x):
-
-        return int(x >= 0)
-
-    def _update_J_0(self, t):
-        """
-        J0 is a sinusoid function related to neuron inhibition.
-        It follows the general sine wave function:
-            f(x) = amplitude * (2 * pi * frequency * time)
-        :param t: int discrete time step.
-        """
-        self.J_0 = self.sinusoid(
-            min_=self.J_0_min,
-            max_=self.J_0_max,
-            period=self.T_j0,
-            phase_shift=self.phase_shift*self.T_j0,
-            t=t
-        )
-
-    def _build_connections(self):
-
-        print('Building the connections...')
-
-        # coordinates = list(it.product(range(self.N), repeat=2))
-
-        for i in tqdm(range(self.N)):
-            for j in range(self.N):
-                # if i == j:
-                #     continue
-                sum_ = 0
-                for mu in range(self.L):
-                    sum_ += \
-                        (self.J[mu, i] - self.f) \
-                        * (self.J[mu, j] - self.f)
-
-                self.J[i, j] = sum_ * self.n_factor
-
-    def _update_threshold(self):
-
-        for i in range(self.N):
-            self.th[i] = self.th[i] - \
-                (self.th[i] - self.first_th[i]
-                 - self.D_th*self.previous_V[i]) \
-                / self.T_th
-
-    def _update_i(self, i):
-
-        # print(f'updating neuron {i}...')
-        sum_ = 0
-        for j in range(self.N):
-            sum_ += \
-                self.J[i, j] * self.previous_V[j]
-
-        second_sum_ = np.sum(self.previous_V)
-
-        multiplier = self.J_0 / (self.N * self.f)
+    for i in range(N):
+        sum_ = np.sum(J[i, :] * previous_V[:])
 
         inside_parenthesis = \
-            sum_ - multiplier * second_sum_ - self.th[i]
+            sum_ - multiplier * second_sum_ - th[i]
 
-        return self.heaviside(inside_parenthesis)
+        V[i] = int(inside_parenthesis > 0)
 
-    def _update_activation(self):
+    # Update threshold =========================================
 
-        self.previous_V = self.V.copy()
+    th[:] -= (th[:] - first_th[:] - D_th * previous_V[:]) / T_th
 
-        self.V[:] = mp.Pool().map(self._update_i, range(self.N))
+    # Save population activity ==================================
 
-        # for i in range(self.N):
-        #     self.V[i] = self._update_i(i)
+    for mu in range(L):
+        sum_ = np.sum((xi[:, mu] - f) * V[:])
+        population_activity[mu, t] = sum_ * n_factor
 
-    def _present_pattern(self):
-
-        self.V[:] = self.xi[self.first_p, :]
-
-    def _save_population_activity(self, t):
-
-        for mu in range(self.L):
-            sum_ = 0
-            for i in range(self.N):
-                sum_ += \
-                    (self.xi[mu, i] - self.f) * self.V[i]
-
-            self.population_activity[mu, t] = sum_ * self.n_factor
-
-        # self.population_activity[:, t] *= self.n_factor
-
-    def simulate(self):
-
-        self._build_connections()
-        self._present_pattern()
-        # self._save_population_activity(0)
-
-        print(f"Simulating for {self.t_max} time steps...\n")
-        for t in tqdm(range(self.t_max)):
-
-            self._update_J_0(t)
-            self._update_activation()
-            self._update_threshold()
-
-            self._save_population_activity(t)
+plot_romani(activity=population_activity)
