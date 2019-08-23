@@ -1,3 +1,4 @@
+import os
 import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -6,7 +7,10 @@ from tools.sinusoid import sinusoid
 from tools.plot import \
     plot_phi, plot_noise, \
     plot_activity_curve, plot_activity_image, plot_inhibition, \
-    plot_weights
+    plot_weights, plot_current_curve
+
+FIG_FOLDER = 'fig'
+os.makedirs(FIG_FOLDER, exist_ok=True)
 
 np.seterr(all='raise')
 np.random.seed(123)
@@ -156,6 +160,8 @@ print("Compute activation for each time step")
 # For plot
 average_firing_rates_per_memory = np.zeros((p, n_iteration))
 
+currents = np.zeros((n_pop, n_iteration))
+
 for t in tqdm(range(n_iteration)):
 
     # Update current
@@ -171,6 +177,9 @@ for t in tqdm(range(n_iteration)):
             c[v] * (1 - time_param) + \
             (input_v + noise[v, t]) * time_param
             # input_v * time_param
+        # if c[v] < 0:
+        #     c[v] = 0
+        currents[v, t] = c[v]
 
     # Update firing rates
     firing_rates[:] = 0
@@ -195,3 +204,4 @@ plot_weights(weights_without_inhibition, name='weights_without_inhibition')
 plot_weights(raw_connectivity, name='raw_connectivity')
 plot_weights(forward_connectivity, name='forward_connectivity')
 plot_weights(backward_connectivity, name='backward_connectivity')
+plot_current_curve(currents)

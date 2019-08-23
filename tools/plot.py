@@ -117,3 +117,21 @@ def plot_weights(weights, name='weights'):
     fig.colorbar(im, ax=ax)
 
     plt.savefig(os.path.join(FIG_FOLDER, f'{name}.pdf'))
+
+
+def plot_current_curve(currents, dt=1.):
+
+    fig, ax = plt.subplots()
+
+    n_iteration = currents.shape[1]
+
+    x = np.arange(n_iteration, dtype=float) * dt
+    ys = currents
+
+    for i, y in enumerate(ys):
+        ax.plot(x, y, linewidth=0.5, alpha=1)
+
+    ax.set_xlabel('Time (cycles)')
+    ax.set_ylabel('Average current of population')
+
+    plt.savefig(os.path.join(FIG_FOLDER, 'current_curve.pdf'))
