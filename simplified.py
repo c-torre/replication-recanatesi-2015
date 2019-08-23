@@ -23,8 +23,8 @@ gamma = 2/5
 kappa = 13000
 f = 0.01
 # Inhibition #############
-phi_min = 0.7 # 0.7  # 0.2  # 0.70
-phi_max = 1.06 # 1.06
+phi_min = 0.7   # 0.7  # 0.2  # 0.70
+phi_max = 1.06   # 1.06
 tau_0 = 1
 phase_shift = 0.75   # 0.5
 # Short term association #
@@ -39,8 +39,8 @@ xi_0 = 65
 r_ini = 1
 first_p = 7  # memory presented first
 
-no_noise = False
-no_fancy_connection = False
+no_noise = True
+no_fancy_connection = True
 
 # General pre-computations
 n_iteration = int(t_tot / dt)
@@ -109,8 +109,8 @@ for v in tqdm(range(n_pop)):
         )
 
 raw_connectivity *= kappa
-forward_connectivity *= j_forward * 8
-backward_connectivity *= j_backward * 8
+forward_connectivity *= j_forward
+backward_connectivity *= j_backward
 
 if no_fancy_connection:
     forward_connectivity[:] = 0
@@ -131,8 +131,8 @@ for i in range(n_pop):
     noise[i] = \
         np.random.normal(loc=0,
                          scale=(xi_0 * n_per_pop[i]) ** 0.5,
-                         size=n_iteration)
-
+                         size=n_iteration) \
+        / n_per_pop[i]
 
 if no_noise:
     noise[:] = 0
@@ -158,16 +158,14 @@ average_firing_rates_per_memory = np.zeros((p, n_iteration))
 
 for t in tqdm(range(n_iteration)):
 
-    weights = weights_without_inhibition + inhibition[t]
-
     # Update current
     for v in range(n_pop):
 
+        # Compute weights
+        weights = (weights_without_inhibition[v, :] + inhibition[t]) / n
+
         # Compute input
-        input_v = np.sum(
-            (weights_without_inhibition[v, :] + inhibition[t]) *
-            s[:] * firing_rates[:]
-        )
+        input_v = np.sum(weights[:] * n_per_pop[:] * firing_rates[:])
 
         c[v] = \
             c[v] * (1 - time_param) + \

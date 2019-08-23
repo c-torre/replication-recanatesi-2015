@@ -11,12 +11,12 @@ n_iteration = 2000
 
 std = xi_0 ** 0.5
 
-data_single = np.sum(
+data_single = np.mean(
     np.random.normal(loc=0, scale=std,
                      size=(n_neurons, n_iteration)), axis=0)
 
 data_pop = np.random.normal(
-    loc=0, scale=std * n_neurons ** 0.5, size=n_iteration)
+    loc=0, scale=std * n_neurons ** 0.5, size=n_iteration) / n_neurons
 
 fig, axes = plt.subplots(nrows=2, figsize=(10, 4))
 
@@ -33,5 +33,5 @@ for i in range(len(data)):
     ax.plot(data[i], linewidth=line_width)
     ax.set_title(titles[i])
     ax.set_xlim(0, len(data[i]))
-
+    ax.set_ylim(limits)
 plt.show()
