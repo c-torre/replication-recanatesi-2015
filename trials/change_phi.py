@@ -23,8 +23,8 @@ gamma = 2/5
 kappa = 13000
 f = 0.01
 # Inhibition #############
-phi_min = 0.7 # 0.7  # 0.2  # 0.70
-phi_max = 1.06 # 1.06
+phi_min = 0.7  * (1/n)  # 0.2  # 0.70
+phi_max = 1.06 * (1/n)
 tau_0 = 1
 phase_shift = 0.75   # 0.5
 # Short term association #
@@ -37,10 +37,10 @@ dt = 0.001
 xi_0 = 65
 # Initialization #########
 r_ini = 1
-first_p = 7  # memory presented first
+first_p = 1  # memory presented first
 
-no_noise = False
-no_fancy_connection = False
+no_noise = True
+no_fancy_connection = True
 
 # General pre-computations
 n_iteration = int(t_tot / dt)
@@ -60,7 +60,7 @@ for t in range(n_iteration):
         dt=dt
     )
 
-inhibition = - phi * kappa
+inhibition = - phi * relative_excitation * p
 
 print("Compute memory patterns...")
 
@@ -109,8 +109,8 @@ for v in tqdm(range(n_pop)):
         )
 
 raw_connectivity *= kappa
-forward_connectivity *= j_forward * 8
-backward_connectivity *= j_backward * 8
+forward_connectivity *= j_forward
+backward_connectivity *= j_backward
 
 if no_fancy_connection:
     forward_connectivity[:] = 0
@@ -126,13 +126,11 @@ print("Computing uncorrelated Gaussian noise...")
 noise = np.zeros((n_pop, n_iteration))
 
 for i in range(n_pop):
-    if i == 0:
-        continue
+
     noise[i] = \
         np.random.normal(loc=0,
-                         scale=(xi_0 * n_per_pop[i]) ** 0.5,
+                         scale=(xi_0 * s[i] * n) ** 0.5,
                          size=n_iteration)
-
 
 if no_noise:
     noise[:] = 0

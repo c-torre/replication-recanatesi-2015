@@ -23,10 +23,10 @@ gamma = 2/5
 kappa = 13000
 f = 0.01
 # Inhibition #############
-phi_min = 0.7 # 0.7  # 0.2  # 0.70
-phi_max = 1.06 # 1.06
+phi_min = 0.1  # 0.2  # 0.70
+phi_max = 1.1
 tau_0 = 1
-phase_shift = 0.75   # 0.5
+phase_shift = 0   # 0.5
 # Short term association #
 j_forward = 1500
 j_backward = 400
@@ -37,10 +37,7 @@ dt = 0.001
 xi_0 = 65
 # Initialization #########
 r_ini = 1
-first_p = 7  # memory presented first
-
-no_noise = False
-no_fancy_connection = False
+first_p = 1  # memory presented first
 
 # General pre-computations
 n_iteration = int(t_tot / dt)
@@ -60,7 +57,7 @@ for t in range(n_iteration):
         dt=dt
     )
 
-inhibition = - phi * kappa
+inhibition = - phi * 0.00021
 
 print("Compute memory patterns...")
 
@@ -108,13 +105,9 @@ for v in tqdm(range(n_pop)):
             v_pop[w, mu_backward - 1]
         )
 
-raw_connectivity *= kappa
-forward_connectivity *= j_forward * 8
-backward_connectivity *= j_backward * 8
-
-if no_fancy_connection:
-    forward_connectivity[:] = 0
-    backward_connectivity[:] = 0
+raw_connectivity *= relative_excitation
+forward_connectivity *= (j_forward/n)
+backward_connectivity *= (j_backward/n)
 
 weights_without_inhibition = \
     raw_connectivity \
@@ -126,16 +119,11 @@ print("Computing uncorrelated Gaussian noise...")
 noise = np.zeros((n_pop, n_iteration))
 
 for i in range(n_pop):
-    if i == 0:
-        continue
+
     noise[i] = \
         np.random.normal(loc=0,
-                         scale=(xi_0 * n_per_pop[i]) ** 0.5,
+                         scale=(xi_0 * s[i] * n) ** 0.5,
                          size=n_iteration)
-
-
-if no_noise:
-    noise[:] = 0
 
 print("\n\nBasic info")
 print("-" * 10)
@@ -165,13 +153,13 @@ for t in tqdm(range(n_iteration)):
 
         # Compute input
         input_v = np.sum(
-            (weights_without_inhibition[v, :] + inhibition[t]) *
-            s[:] * firing_rates[:]
+            (weights_without_inhibition[v, :] + inhibition[t]*n_per_pop[:]) *
+            n_per_pop[:] * firing_rates[:]
         )
 
         c[v] = \
             c[v] * (1 - time_param) + \
-            (input_v + noise[v, t]) * time_param
+            (input_v + noise[v, t]* 0.0095) * time_param
             # input_v * time_param
 
     # Update firing rates
