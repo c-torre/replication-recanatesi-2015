@@ -11,6 +11,8 @@ n_iteration = 2000
 
 std = xi_0 ** 0.5
 
+print("std", std)
+
 data_single = np.mean(
     np.random.normal(loc=0, scale=std,
                      size=(n_neurons, n_iteration)), axis=0)

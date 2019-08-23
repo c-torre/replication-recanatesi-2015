@@ -119,7 +119,7 @@ def plot_weights(weights, name='weights'):
     plt.savefig(os.path.join(FIG_FOLDER, f'{name}.pdf'))
 
 
-def plot_current_curve(currents, dt=1.):
+def plot_current_curve(currents, dt=1., name="current"):
 
     fig, ax = plt.subplots()
 
@@ -132,6 +132,7 @@ def plot_current_curve(currents, dt=1.):
         ax.plot(x, y, linewidth=0.5, alpha=1)
 
     ax.set_xlabel('Time (cycles)')
-    ax.set_ylabel('Average current of population')
+    ax.set_ylabel('Average current')
+    ax.set_title(f"{name}")
 
-    plt.savefig(os.path.join(FIG_FOLDER, 'current_curve.pdf'))
+    plt.savefig(os.path.join(FIG_FOLDER, f"{name}.pdf"))
