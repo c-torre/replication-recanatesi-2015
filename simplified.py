@@ -24,7 +24,7 @@ tau = 0.01
 theta = 0
 gamma = 2/5
 # Hebbian rule ###########
-kappa = 20000# 13000
+kappa = 13000
 f = 0.01
 # Inhibition #############
 phi_min = 0.7   # 0.7  # 0.2  # 0.70
@@ -194,7 +194,7 @@ for t in tqdm(range(n_iter)):
         # #     c[v] = 0
 
         c[v] += time_param * (
-            -c[v] + input_v + noise[v, t]
+            -c[v] + input_v + noise[v, t] * 10
         )
 
         currents[v, t] = c[v]
