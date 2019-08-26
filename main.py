@@ -43,7 +43,8 @@ xi_0 = 65
 r_ini = 1
 first_p = 7  # memory presented first
 
-magic_number_noise = 10
+magic_number_noise = 10  # Allows stochastic change of limit cycle
+magic_number_current = 4.75  # Changes the height of the peaks
 
 no_noise = False
 no_fancy_connection = False
@@ -191,7 +192,7 @@ for t in tqdm(range(n_iter)):
     # Update firing rates
     firing_rates[:] = 0
     cond = (c + theta) > 0
-    firing_rates[cond] = (c[cond] + theta) ** gamma
+    firing_rates[cond] = (c[cond] * magic_number_current + theta) ** gamma
 
     for mu in range(p):
 
