@@ -4,11 +4,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 
-FIG_FOLDER = 'fig'
+FIG_FOLDER = "fig"
 os.makedirs(FIG_FOLDER, exist_ok=True)
 
 
-def plot_phi(phi_values, dt=1.):
+def phi(phi_values, dt=1.):
 
     fig, ax = plt.subplots()
 
@@ -22,10 +22,10 @@ def plot_phi(phi_values, dt=1.):
     ax.set_xlabel("Time (cycles)")
     ax.set_ylabel("$\phi$")
 
-    plt.savefig(os.path.join(FIG_FOLDER, 'phi.pdf'))
+    plt.savefig(os.path.join(FIG_FOLDER, "phi.pdf"))
 
 
-def plot_noise(noise_values, dt=1.):
+def noise(noise_values, dt=1.):
 
     fig, ax = plt.subplots()
 
@@ -40,10 +40,10 @@ def plot_noise(noise_values, dt=1.):
     ax.set_xlabel("Time (cycles)")
     ax.set_ylabel("Noise")
 
-    plt.savefig(os.path.join(FIG_FOLDER, 'noise.pdf'))
+    plt.savefig(os.path.join(FIG_FOLDER, "noise.pdf"))
 
 
-def plot_activity_curve(firing_rates, dt=1.):
+def activity_curve(firing_rates, dt=1.):
 
     fig, ax = plt.subplots()
 
@@ -58,10 +58,10 @@ def plot_activity_curve(firing_rates, dt=1.):
     ax.set_xlabel('Time (cycles)')
     ax.set_ylabel('Average firing rate')
 
-    plt.savefig(os.path.join(FIG_FOLDER, 'activity_curve.pdf'))
+    plt.savefig(os.path.join(FIG_FOLDER, "activity_curve.pdf"))
 
 
-def plot_activity_image(firing_rates, dt=1.):
+def activity_image(firing_rates, dt=1.):
 
     fig, ax = plt.subplots()
 
@@ -73,7 +73,7 @@ def plot_activity_image(firing_rates, dt=1.):
                         n_memory - 0.5, -0.5
                    ])
 
-    ax.set_xlabel('Time (cycles)')
+    ax.set_xlabel("Time (cycles)")
     ax.set_ylabel("Attractor number")
 
     fig.colorbar(im, ax=ax)
@@ -83,43 +83,43 @@ def plot_activity_image(firing_rates, dt=1.):
 
     plt.tight_layout()
 
-    plt.savefig(os.path.join(FIG_FOLDER, 'activity_image.pdf'))
+    plt.savefig(os.path.join(FIG_FOLDER, "activity_image.pdf"))
 
 
-def plot_inhibition(inhibition, dt=1.):
+def inhibition(inhibition_values, dt=1.):
 
     fig, ax = plt.subplots()
 
-    n_iteration = len(inhibition)
+    n_iteration = len(inhibition_values)
 
     x = np.arange(n_iteration, dtype=float) * dt
-    y = inhibition
+    y = inhibition_values
 
     ax.plot(x, y)
 
     ax.set_xlabel("Time (cycles)")
     ax.set_ylabel("Inhibition")
 
-    plt.savefig(os.path.join(FIG_FOLDER, 'inhibition.pdf'))
+    plt.savefig(os.path.join(FIG_FOLDER, "inhibition_values.pdf"))
 
 
-def plot_weights(weights, name='weights'):
+def weights(weights_array, name='weights_array'):
 
     fig, ax = plt.subplots()
 
-    ax.set_xlabel('v')
-    ax.set_ylabel('w')
+    ax.set_xlabel("Neuron v")
+    ax.set_ylabel("Neuron w")
 
     ax.set_title(name)
 
-    im = ax.imshow(weights)
+    im = ax.imshow(weights_array)
 
     fig.colorbar(im, ax=ax)
 
-    plt.savefig(os.path.join(FIG_FOLDER, f'{name}.pdf'))
+    plt.savefig(os.path.join(FIG_FOLDER, f"{name}.pdf"))
 
 
-def plot_current_curve(currents, dt=1., name="current"):
+def current_curve(currents, dt=1., name="current"):
 
     fig, ax = plt.subplots()
 
@@ -131,21 +131,21 @@ def plot_current_curve(currents, dt=1., name="current"):
     for i, y in enumerate(ys):
         ax.plot(x, y, linewidth=0.5, alpha=1)
 
-    ax.set_xlabel('Time (cycles)')
-    ax.set_ylabel('Average current')
+    ax.set_xlabel("Time (cycles)")
+    ax.set_ylabel("Average current")
     ax.set_title(f"{name}")
 
     plt.savefig(os.path.join(FIG_FOLDER, f"{name}.pdf"))
 
 
-def plot_romani(activity):
+def romani(activity):
 
     fig, ax = plt.subplots()
-    im = ax.imshow(activity, aspect='auto',
-                   cmap='jet')
+    im = ax.imshow(activity, aspect="auto",
+                   cmap="jet")
     fig.colorbar(im, ax=ax)
 
-    ax.set_xlabel('Time')
+    ax.set_xlabel("Time")
     ax.set_ylabel("Memories")
 
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
