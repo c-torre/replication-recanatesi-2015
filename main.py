@@ -4,7 +4,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 
 from tools.sinusoid import sinusoid
-from tools.plot import \
+from tools.plots import \
     plot_phi, plot_noise, \
     plot_activity_curve, plot_activity_image, plot_inhibition, \
     plot_weights, plot_current_curve

@@ -1,92 +1,136 @@
 import os
+
 import numpy as np
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 
+import tools.plots as plot
 from tools.sinusoid import sinusoid
-from tools.plot import \
-    plot_phi, plot_noise, \
-    plot_activity_curve, plot_activity_image, plot_inhibition, \
-    plot_weights, plot_current_curve
 
-FIG_FOLDER = 'fig'
-os.makedirs(FIG_FOLDER, exist_ok=True)
 
-np.seterr(all='raise')
-np.random.seed(123)
+class Network:
+    def __init__(self,
+                 # Architecture ###########
+                 n=100000,
+                 p=16,
+                 # Activation #############
+                 tau=0.01,
+                 # Gain ###################
+                 theta=0,
+                 gamma=2/5,
+                 # Hebbian rule ###########
+                 kappa=13000,
+                 f=0.01,
+                 # Inhibition #############
+                 phi_min=0.7,
+                 phi_max=1.06,
+                 tau_0=1,
+                 phase_shift=0.75,
+                 # Short term association #
+                 j_forward=1500,
+                 j_backward=400,
+                 # Time ###################
+                 t_tot=14,
+                 dt=0.001,
+                 # Noise ##################
+                 xi_0=65,
+                 # Initialization #########
+                 r_ini=1,
+                 first_p=7,
+                 # Replication parameters #
+                 param_noise=10,
+                 param_current=4.75
+                 ):
 
-# Architecture ###########
-n = 100000
-p = 16
-# Activation #############
-tau = 0.01
-# Gain ###################
-theta = 0
-gamma = 2/5
-# Hebbian rule ###########
-kappa = 13000
-f = 0.01
-# Inhibition #############
-phi_min = 0.7   # 0.7  # 0.2  # 0.70
-phi_max = 1.06   # 1.06
-tau_0 = 1
-phase_shift = 0.75   # 0.5
-# Short term association #
-j_forward = 1500  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-j_backward = 400   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# Time ###################
-t_tot = 14  # 450!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-dt = 0.001
-# Noise #####
-xi_0 = 65
-# Initialization #########
-r_ini = 1
-first_p = 7  # memory presented first
+        # Model parameters
+        self.n = n
+        self.p = p
 
-magic_number_noise = 10  # Allows stochastic change of limit cycle
-magic_number_current = 4.75  # Changes the height of the peaks
+        self.tau = tau
 
-no_noise = False
-no_fancy_connection = False
+        self.theta = theta
+        self.gamma = gamma
+
+        self.kappa = gamma
+        self.f = f
+
+        self.phi_min = phi_min
+        self.phi_max = phi_max
+        self.tau_0 = tau_0
+        self.phase_shift = phase_shift
+
+        self.j_forward = j_forward
+        self.j_backward = j_backward
+
+        self.t_tot = t_tot
+        self.dt = dt
+
+        self.xi_0 = xi_0
+
+        self.r_ini = r_ini
+        self.first_p = first_p
+
+        self.param_noise = param_noise  # Allows change of limit cycle
+        self.param_current = param_current  # Changes the height of the peaks
+
+        # General pre-computations
+        self.num_iter = int(t_tot / dt)
+        self.relative_excitation = kappa / n
+        self.time_param = dt / tau
+
+        self.phi = np.zeros(self.num_iter)
+        self.inhibition = None
+
+
+
+    def compute_phi(self):
+        print("Computing oscillatory inhibition values...")
+
+        for t in range(self.num_iter):
+            self.phi[t] = sinusoid(
+                min_=self.phi_min,
+                max_=self.phi_max,
+                period=self.tau_0,
+                t=t,
+                phase_shift=self.phase_shift * self.tau_0,
+                dt=self.dt
+            )
+
+        self.inhibition = - self.phi
+
+    def compute_memory_patterns(self):
+        print("Computing memory patterns...")
+
+        memory_patterns = \
+            np.random.choice([0, 1], p=[1 - f, f],
+                             size=(n, p))
+
+        v_pop, n_per_pop = \
+            np.unique([tuple(i) for i in memory_patterns], axis=0,
+                      return_counts=True)
+
+        s = n_per_pop / n
+
+        n_pop = len(v_pop)
+
+        print("Computing who is encoding what...")
+
+        encoding = [
+            (v_pop[:, mu] == 1).nonzero()[0] for mu in range(p)]
+
+    def initialize(self):
+        """
+
+        :return:
+        """
+
+        self.compute_phi()
 
 # General pre-computations
-n_iter = int(t_tot / dt)
-relative_excitation = kappa / n
-time_param = dt/tau
 
-print("Computing oscillatory inhibition values...")
 
-phi = np.zeros(n_iter)
-for t in range(n_iter):
-    phi[t] = sinusoid(
-        min_=phi_min,
-        max_=phi_max,
-        period=tau_0,
-        t=t,
-        phase_shift=phase_shift*tau_0,
-        dt=dt
-    )
 
-inhibition = - phi
 
-print("Compute memory patterns...")
 
-memory_patterns = \
-    np.random.choice([0, 1], p=[1 - f, f],
-                     size=(n, p))
-
-v_pop, n_per_pop = \
-    np.unique([tuple(i) for i in memory_patterns], axis=0,
-              return_counts=True)
-
-s = n_per_pop / n
-
-n_pop = len(v_pop)
-
-print("Compute who is encoding what...")
-
-encoding = [
-    (v_pop[:, mu] == 1).nonzero()[0] for mu in range(p)]
 
 print("Computing weights without inhibition...")
 
@@ -143,7 +187,7 @@ for i in range(n_pop):
         np.random.normal(loc=0,
                          scale=(xi_0 * n_per_pop[i]) ** 0.5,
                          size=n_iter) \
-        / n_per_pop[i] * magic_number_noise
+        / n_per_pop[i] * param_noise
 
 if no_noise:
     print("NO NOISE")
@@ -192,7 +236,7 @@ for t in tqdm(range(n_iter)):
     # Update firing rates
     firing_rates[:] = 0
     cond = (c + theta) > 0
-    firing_rates[cond] = (c[cond] * magic_number_current + theta) ** gamma
+    firing_rates[cond] = (c[cond] * param_current + theta) ** gamma
 
     for mu in range(p):
 
@@ -207,25 +251,26 @@ for t in tqdm(range(n_iter)):
         currents_memory[mu, t] = \
             np.average(c_mu, weights=n_corresponding)
 
-# Make plots
-
-
 
 def main():
+    fig_folder = 'fig'
+    os.makedirs(fig_folder, exist_ok=True)
 
+    np.seterr(all='raise')
+    np.random.seed(123)
 
     # Plots
-    plot_activity_image(average_firing_rates_per_memory, dt=dt)
-    plot_activity_curve(average_firing_rates_per_memory, dt=dt)
-    plot_inhibition(inhibition, dt=dt)
-    plot_phi(phi, dt=dt)
-    plot_noise(noise, dt=dt)
-    plot_weights(weights_without_inhibition, name='weights_without_inhibition')
-    plot_weights(raw_connectivity, name='raw_connectivity')
-    plot_weights(forward_connectivity, name='forward_connectivity')
-    plot_weights(backward_connectivity, name='backward_connectivity')
-    plot_current_curve(currents, dt=dt, name="currents_population")
-    plot_current_curve(currents_memory, dt=dt, name="currents_memory")
+    plot.activity_image(average_firing_rates_per_memory, dt=dt)
+    plot.activity_curve(average_firing_rates_per_memory, dt=dt)
+    plot.inhibition(inhibition, dt=dt)
+    plot.phi(phi, dt=dt)
+    plot.noise(noise, dt=dt)
+    plot.weights(weights_without_inhibition, name='weights_without_inhibition')
+    plot.weights(raw_connectivity, name='raw_connectivity')
+    plot.weights(forward_connectivity, name='forward_connectivity')
+    plot.weights(backward_connectivity, name='backward_connectivity')
+    plot.current_curve(currents, dt=dt, name="currents_population")
+    plot.current_curve(currents_memory, dt=dt, name="currents_memory")
 
 
 if __name__ == '__main__':
