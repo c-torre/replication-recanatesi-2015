@@ -1,88 +1,132 @@
+"""
+<[Re] Recanatesi (2015). Neural Network Model of Memory Retrieval>
+Copyright (C) <2019>  <de la Torre-Ortiz C, Nioche A>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+The docstring for a module should generally list the classes, exceptions
+and functions (and any other objects) that are exported by the module,
+with a one-line summary of each. (These summaries generally give less
+detail than the summary line in the object's docstring.) The docstring
+for a package (i.e., the docstring of the package's __init__.py module)
+should also list the modules and subpackages exported by the package.
+
+:class Network: artificial neural network model of memory retrieval
+
+"""
+
 import os
 
 import numpy as np
+from numpy.core._multiarray_umath import ndarray
 from tqdm import tqdm
 
 import tools.plots as plot
 from tools.sinusoid import sinusoid
 
+FIG_FOLDER = "fig"
+os.makedirs(FIG_FOLDER, exist_ok=True)
+
+np.seterr(all="raise")
+
 
 class Network:
+    """
+    Hopfield network for memory retrieval based on the one in Recanatesi (2015)
+    The docstring for a class should summarize its behavior and list the public
+    methods and instance variables. If the class is intended to be subclassed,
+    and has an additional interface for subclasses, this interface should be
+    listed separately (in the docstring). The class constructor should be
+    documented in the docstring for its __init__ method. Individual methods
+    should be documented by their own docstring.
+
+    """
+
     def __init__(self,
-                 # Architecture ###########
-                 n=100000,
-                 p=16,
-                 # Activation #############
-                 tau=0.01,
-                 # Gain ###################
-                 theta=0,
-                 gamma=2/5,
-                 # Hebbian rule ###########
-                 kappa=13000,
-                 f=0.01,
-                 # Inhibition #############
-                 phi_min=0.7,
-                 phi_max=1.06,
-                 tau_0=1,
+                 # Architecture
+                 num_neurons=100000,
+                 num_memories=16,
+                 # Activation
+                 t_decay=0.01,
+                 # Gain
+                 threshold=0,
+                 gain_exp=2/5,
+                 # Hebbian rule
+                 excitation=13000,
+                 sparsity=0.01,
+                 # Inhibition
+                 sin_min=0.7,
+                 sin_max=1.06,
+                 t_oscillation=1,
                  phase_shift=0.75,
-                 # Short term association #
-                 j_forward=1500,
-                 j_backward=400,
-                 # Time ###################
+                 # Short term association
+                 cont_forward=1500,
+                 cont_backward=400,
+                 # Time
                  t_tot=14,
-                 dt=0.001,
-                 # Noise ##################
-                 xi_0=65,
-                 # Initialization #########
-                 r_ini=1,
-                 first_p=7,
-                 # Replication parameters #
+                 t_step=0.001,
+                 # Noise
+                 noise_var=65,
+                 # Initialization
+                 init_rate=1,
+                 first_memory=7,
+                 # Replication parameters
                  param_noise=10,
                  param_current=4.75
                  ):
 
         # Model parameters
-        self.n = n
-        self.p = p
+        self.num_neurons = num_neurons
+        self.num_memories = num_memories
 
-        self.tau = tau
+        self.t_decay = t_decay
 
-        self.theta = theta
-        self.gamma = gamma
+        self.threshold = threshold
+        self.gain_exp = gain_exp
 
-        self.kappa = gamma
-        self.f = f
+        self.excitation = excitation
+        self.sparsity = sparsity
 
-        self.phi_min = phi_min
-        self.phi_max = phi_max
-        self.tau_0 = tau_0
+        self.sin_min = sin_min
+        self.sin_max = sin_max
+        self.t_oscillation = t_oscillation
         self.phase_shift = phase_shift
 
-        self.j_forward = j_forward
-        self.j_backward = j_backward
+        self.cont_forward = cont_forward
+        self.cont_backward = cont_backward
 
         self.t_tot = t_tot
-        self.dt = dt
+        self.t_step = t_step
 
-        self.xi_0 = xi_0
+        self.noise_var = noise_var
 
-        self.r_ini = r_ini
-        self.first_p = first_p
+        self.init_rate = init_rate
+        self.first_memory = first_memory
 
-        self.param_noise = param_noise  # Allows change of limit cycle
-        self.param_current = param_current  # Changes the height of the peaks
+        self.param_noise = param_noise  # Extra replication parameter
+        self.param_current = param_current  # Extra replication parameter
 
         # General pre-computations
-        self.num_iter = int(t_tot / dt)
-        self.relative_excitation = kappa / n
-        self.time_param = dt / tau
+        self.num_iter = int(t_tot / t_step)
+        self.relative_excitation = excitation / num_neurons
+        self.time_param = t_step / t_decay
 
         # Inhibition
-        self.phi = np.zeros(self.num_iter)
-        self.inhibition = None
+        self.sin = np.zeros(self.num_iter)
+        self.inhibition = np.zeros(self.num_iter)
 
         # Memory patterns
-        self.memory_patterns = np.zeros((self.n, self.p))
+        self.memory_patterns = np.zeros((self.num_neurons, self.num_memories))
         self.v_pop = None
         self.n_per_pop = None
         self.s = None
@@ -91,12 +135,12 @@ class Network:
         self.compute_memory_patterns()
 
         # Connectivity
-        self.raw_connectivity = np.zeros((self.n_pop, self.n_pop))
+        self.regular_connectivity = np.zeros((self.n_pop, self.n_pop))
         self.forward_connectivity = np.zeros((self.n_pop, self.n_pop))
         self.backward_connectivity = np.zeros((self.n_pop, self.n_pop))
         self.weights_without_inhibition = np.zeros((self.n_pop, self.n_pop))
-        self.mu_forward = np.arange(self.p - 1)
-        self.mu_backward = np.arange(1, self.p)
+        self.mu_forward = np.arange(self.num_memories - 1)
+        self.mu_backward = np.arange(1, self.num_memories)
 
         # Noise
         self.noise = np.zeros((self.n_pop, self.num_iter))
@@ -104,71 +148,75 @@ class Network:
         # Neuron dynamics
         self.firing_rates = np.zeros(self.n_pop)
         self.c = np.zeros(self.n_pop)
-        self.average_firing_rates_per_memory = np.zeros((self.p,
+        self.average_firing_rates_per_memory = np.zeros((self.num_memories,
                                                          self.num_iter))
         self.currents = np.zeros((self.n_pop, self.num_iter))
-        self.currents_memory = np.zeros((self.p, self.num_iter))
+        self.currents_memory = np.zeros((self.num_memories, self.num_iter))
 
         #####################
         # # Start network # #
         #####################
         self.start_network()
 
-    def compute_phi(self):
-        """
-
-        :return:
-        """
-        print("Computing inhibition values...")
-
-        for t in range(self.num_iter):
-            self.phi[t] = sinusoid(
-                min_=self.phi_min,
-                max_=self.phi_max,
-                period=self.tau_0,
-                t=t,
-                phase_shift=self.phase_shift * self.tau_0,
-                dt=self.dt
-            )
-
-        self.inhibition = - self.phi
-
     def compute_memory_patterns(self):
         """
 
         :return:
         """
+
         print("Computing memory patterns...")
 
         self.memory_patterns = \
-            np.random.choice([0, 1], p=[1 - self.f, self.f],
-                             size=(self.n, self.p))
+            np.random.choice([0, 1], p=[1 - self.sparsity, self.sparsity],
+                             size=(self.num_neurons, self.num_memories))
 
         self.v_pop, self.n_per_pop = \
             np.unique([tuple(i) for i in self.memory_patterns], axis=0,
                       return_counts=True)
 
-        self.s = self.n_per_pop / self.n
+        self.s = self.n_per_pop / self.num_neurons
 
         self.n_pop = len(self.v_pop)
 
-        print("Computing who is encoding what...")
+        print("Finding who is encoding what...")
 
         self.encoding = [
-            (self.v_pop[:, mu] == 1).nonzero()[0] for mu in range(self.p)]
+            (self.v_pop[:, mu] == 1).nonzero()[0] for mu in range(
+                self.num_memories)]
+
+    def compute_phi(self):
+        """
+
+        :return:
+        """
+
+        print("Calculating inhibition values...")
+
+        for t in range(self.num_iter):
+            self.sin[t] = sinusoid(
+                min_=self.sin_min,
+                max_=self.sin_max,
+                period=self.t_oscillation,
+                t=t,
+                phase_shift=self.phase_shift * self.t_oscillation,
+                dt=self.t_step
+            )
+
+        self.inhibition = - self.sin
 
     def compute_connectivity(self):
         """
 
         :return:
         """
-        print("XXXX")
+
+        print("Adjusting regular, forward and backward connectivity...")
 
         for v in tqdm(range(self.n_pop)):
             for w in range(self.n_pop):
-                self.raw_connectivity[v, w] = np.sum(
-                    (self.v_pop[v, :] - self.f)
-                    * (self.v_pop[w, :] - self.f)
+                self.regular_connectivity[v, w] = np.sum(
+                    (self.v_pop[v, :] - self.sparsity)
+                    * (self.v_pop[w, :] - self.sparsity)
                 )
 
                 self.forward_connectivity[v, w] = np.sum(
@@ -181,13 +229,13 @@ class Network:
                     self.v_pop[w, self.mu_backward - 1]
                 )
 
-        self.raw_connectivity *= self.kappa
-        self.forward_connectivity *= self.j_forward
-        self.backward_connectivity *= self.j_backward
-        self.inhibition *= self.kappa
+        self.regular_connectivity *= self.excitation
+        self.forward_connectivity *= self.cont_forward
+        self.backward_connectivity *= self.cont_backward
+        self.inhibition *= self.excitation
 
         self.weights_without_inhibition = \
-            self.raw_connectivity \
+            self.regular_connectivity \
             + self.forward_connectivity \
             + self.backward_connectivity
 
@@ -196,12 +244,14 @@ class Network:
 
         :return:
         """
-        print("Computing uncorrelated Gaussian noise...")
+
+        print("Calculating uncorrelated Gaussian noise...")
 
         for i in range(self.n_pop):
             self.noise[i] = \
                 np.random.normal(loc=0,
-                                 scale=(self.xi_0 * self.n_per_pop[i]) ** 0.5,
+                                 scale=(self.noise_var * self.n_per_pop[i])
+                                 ** 0.5,
                                  size=self.num_iter) \
                 / self.n_per_pop[i] * self.param_noise
 
@@ -210,21 +260,23 @@ class Network:
 
         :return:
         """
-        print("Computing uncorrelated Gaussian noise...")
+
+        print("Initializing neuron dynamics...")
 
         # Initialize firing rates
-        self.firing_rates[self.encoding[self.first_p]] = self.r_ini
+        self.firing_rates[self.encoding[self.first_memory]] = self.init_rate
 
         # initialize current
-        c_ini = self.r_ini ** (1 / self.gamma) - self.theta
-        self.c[self.encoding[self.first_p]] = c_ini
+        c_ini = self.init_rate ** (1 / self.gain_exp) - self.threshold
+        self.c[self.encoding[self.first_memory]] = c_ini
 
     def compute_neuron_dynamics(self):
         """
 
         :return:
         """
-        print("Compute activation for each time step")
+
+        print("Computing activation at each time step...")
 
         for t in tqdm(range(self.num_iter)):
 
@@ -232,7 +284,7 @@ class Network:
             for v in range(self.n_pop):
                 # Compute weights
                 weights = (self.weights_without_inhibition[v, :]
-                           + self.inhibition[t]) / self.n
+                           + self.inhibition[t]) / self.num_neurons
 
                 # Compute input
                 input_v = np.sum(weights[:] * self.n_per_pop[:] *
@@ -245,11 +297,11 @@ class Network:
 
             # Update firing rates
             self.firing_rates[:] = 0
-            cond = (self.c + self.theta) > 0
+            cond = (self.c + self.threshold) > 0
             self.firing_rates[cond] = (self.c[cond] * self.param_current
-                                       + self.theta) ** self.gamma
+                                       + self.threshold) ** self.gain_exp
 
-            for mu in range(self.p):
+            for mu in range(self.num_memories):
                 fr = self.firing_rates[self.encoding[mu]]
                 n_corresponding = self.n_per_pop[self.encoding[mu]]
 
@@ -266,7 +318,6 @@ class Network:
 
         :return:
         """
-        print("XXXXXXX")
 
         self.compute_phi()
         self.compute_connectivity()
@@ -276,33 +327,46 @@ class Network:
 
 
 def main():
-    fig_folder = "fig"
-    os.makedirs(fig_folder, exist_ok=True)
+    """
 
-    np.seterr(all="raise")
+    """
+
+    print("<[Re] Recanatesi (2015)>  Copyright (C) <2019>\n"
+          "<de la Torre-Ortiz C, Nioche A>\n"
+          "This program comes with ABSOLUTELY NO WARRANTY.\n"
+          "This is free software, and you are welcome to redistribute it\n"
+          "under certain conditions; see the 'LICENSE' file for details.\n")
     np.random.seed(123)
 
     network = Network()
 
     # Plots
-    plot.activity_image(network.average_firing_rates_per_memory, dt=network.dt)
-    plot.activity_curve(network.average_firing_rates_per_memory, dt=network.dt)
-    plot.inhibition(network.inhibition, dt=network.dt)
-    plot.phi(network.phi, dt=network.dt)
-    plot.noise(network.noise, dt=network.dt)
+    print("Plotting...")
+    plot.activity_image(network.average_firing_rates_per_memory,
+                        dt=network.t_step)
+    plot.activity_curve(network.average_firing_rates_per_memory,
+                        dt=network.t_step)
+
+    plot.inhibition(network.inhibition, dt=network.t_step)
+    plot.phi(network.sin, dt=network.t_step)
+
+    plot.noise(network.noise, dt=network.t_step)
 
     plot.weights(network.weights_without_inhibition,
                  name="weights_without_inhibition")
-    plot.weights(network.raw_connectivity,
-                 name="raw_connectivity")
+    plot.weights(network.regular_connectivity,
+                 name="regular_connectivity")
     plot.weights(network.forward_connectivity,
                  name="forward_connectivity")
     plot.weights(network.backward_connectivity,
                  name="backward_connectivity")
-    plot.current_curve(network.currents, dt=network.dt,
+
+    plot.current_curve(network.currents, dt=network.t_step,
                        name="currents_population")
-    plot.current_curve(network.currents_memory, dt=network.dt,
+    plot.current_curve(network.currents_memory, dt=network.t_step,
                        name="currents_memory")
+
+    print("Done!")
 
 
 if __name__ == '__main__':
