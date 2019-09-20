@@ -3,11 +3,8 @@ import numpy as np
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 
+import tools.plots as plot
 from tools.sinusoid import sinusoid
-from tools.plots import \
-    plot_phi, plot_noise, \
-    plot_activity_curve, plot_activity_image, plot_inhibition, \
-    plot_weights, plot_current_curve
 
 FIG_FOLDER = 'fig'
 os.makedirs(FIG_FOLDER, exist_ok=True)
@@ -208,14 +205,14 @@ for t in tqdm(range(n_iter)):
             np.average(c_mu, weights=n_corresponding)
 
 # Make plots
-plot_activity_image(average_firing_rates_per_memory, dt=dt)
-plot_activity_curve(average_firing_rates_per_memory, dt=dt)
-plot_inhibition(inhibition, dt=dt)
-plot_phi(phi, dt=dt)
-plot_noise(noise, dt=dt)
-plot_weights(weights_without_inhibition, name='weights_without_inhibition')
-plot_weights(raw_connectivity, name='raw_connectivity')
-plot_weights(forward_connectivity, name='forward_connectivity')
-plot_weights(backward_connectivity, name='backward_connectivity')
-plot_current_curve(currents, dt=dt, name="currents_population")
-plot_current_curve(currents_memory, dt=dt, name="currents_memory")
+plot.activity_image(average_firing_rates_per_memory, dt=dt)
+plot.activity_curve(average_firing_rates_per_memory, dt=dt)
+plot.inhibition(inhibition, dt=dt)
+plot.phi(phi, dt=dt)
+plot.noise(noise, dt=dt)
+plot.weights(weights_without_inhibition, name='weights_without_inhibition')
+plot.weights(raw_connectivity, name='raw_connectivity')
+plot.weights(forward_connectivity, name='forward_connectivity')
+plot.weights(backward_connectivity, name='backward_connectivity')
+plot.current_curve(currents, dt=dt, name="currents_population")
+plot.current_curve(currents_memory, dt=dt, name="currents_memory")
