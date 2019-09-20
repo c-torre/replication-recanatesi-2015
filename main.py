@@ -1,160 +1,212 @@
 import os
+
 import numpy as np
 from tqdm import tqdm
-import matplotlib.pyplot as plt
 
+import tools.plots as plot
 from tools.sinusoid import sinusoid
-from tools.plots import \
-    plot_phi, plot_noise, \
-    plot_activity_curve, plot_activity_image, plot_inhibition, \
-    plot_weights, plot_current_curve
 
-FIG_FOLDER = 'fig'
-os.makedirs(FIG_FOLDER, exist_ok=True)
 
-np.seterr(all='raise')
-np.random.seed(123)
+class Network:
+    def __init__(self,
+                 # Architecture ###########
+                 n=100000,
+                 p=16,
+                 # Activation #############
+                 tau=0.01,
+                 # Gain ###################
+                 theta=0,
+                 gamma=2/5,
+                 # Hebbian rule ###########
+                 kappa=13000,
+                 f=0.01,
+                 # Inhibition #############
+                 phi_min=0.7,
+                 phi_max=1.06,
+                 tau_0=1,
+                 phase_shift=0.75,
+                 # Short term association #
+                 j_forward=1500,
+                 j_backward=400,
+                 # Time ###################
+                 t_tot=14,
+                 dt=0.001,
+                 # Noise ##################
+                 xi_0=65,
+                 # Initialization #########
+                 r_ini=1,
+                 first_p=7,
+                 # Replication parameters #
+                 param_noise=10,
+                 param_current=4.75
+                 ):
 
-# Architecture ###########
-n = 100000
-p = 16
-# Activation #############
-tau = 0.01
-# Gain ###################
-theta = 0
-gamma = 2/5
-# Hebbian rule ###########
-kappa = 13000
-f = 0.01
-# Inhibition #############
-phi_min = 0.7   # 0.7  # 0.2  # 0.70
-phi_max = 1.06   # 1.06
-tau_0 = 1
-phase_shift = 0.75   # 0.5
-# Short term association #
-j_forward = 1500  #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-j_backward = 400   #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-# Time ###################
-t_tot = 14  # 450!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-dt = 0.001
-# Noise #####
-xi_0 = 65
-# Initialization #########
-r_ini = 1
-first_p = 7  # memory presented first
+        # Model parameters
+        self.n = n
+        self.p = p
 
-magic_number_noise = 10  # Allows stochastic change of limit cycle
-magic_number_current = 4.75  # Changes the height of the peaks
+        self.tau = tau
 
-no_noise = False
-no_fancy_connection = False
+        self.theta = theta
+        self.gamma = gamma
 
-# General pre-computations
-n_iter = int(t_tot / dt)
-relative_excitation = kappa / n
-time_param = dt/tau
+        self.kappa = gamma
+        self.f = f
 
-print("Computing oscillatory inhibition values...")
+        self.phi_min = phi_min
+        self.phi_max = phi_max
+        self.tau_0 = tau_0
+        self.phase_shift = phase_shift
 
-phi = np.zeros(n_iter)
-for t in range(n_iter):
-    phi[t] = sinusoid(
-        min_=phi_min,
-        max_=phi_max,
-        period=tau_0,
-        t=t,
-        phase_shift=phase_shift*tau_0,
-        dt=dt
-    )
+        self.j_forward = j_forward
+        self.j_backward = j_backward
 
-inhibition = - phi
+        self.t_tot = t_tot
+        self.dt = dt
 
-print("Compute memory patterns...")
+        self.xi_0 = xi_0
 
-memory_patterns = \
-    np.random.choice([0, 1], p=[1 - f, f],
-                     size=(n, p))
+        self.r_ini = r_ini
+        self.first_p = first_p
 
-v_pop, n_per_pop = \
-    np.unique([tuple(i) for i in memory_patterns], axis=0,
-              return_counts=True)
+        self.param_noise = param_noise  # Allows change of limit cycle
+        self.param_current = param_current  # Changes the height of the peaks
 
-s = n_per_pop / n
+        # General pre-computations
+        self.num_iter = int(t_tot / dt)
+        self.relative_excitation = kappa / n
+        self.time_param = dt / tau
 
-n_pop = len(v_pop)
+        # Inhibition
+        self.phi = np.zeros(self.num_iter)
+        self.inhibition = None
 
-print("Compute who is encoding what...")
+        # Memory patterns
+        self.memory_patterns = np.zeros((self.n, self.p))
+        self.v_pop = None
+        self.n_per_pop = None
+        self.s = None
+        self.n_pop = None
+        self.encoding = None
 
-encoding = [
-    (v_pop[:, mu] == 1).nonzero()[0] for mu in range(p)]
+        # Connectivity
+        self.raw_connectivity = np.zeros((self.n_pop, self.n_pop))
+        self.forward_connectivity = np.zeros((self.n_pop, self.n_pop))
+        self.backward_connectivity = np.zeros((self.n_pop, self.n_pop))
+        self.mu_forward = np.arange(self.p - 1)
+        self.mu_backward = np.arange(1, self.p)
 
-print("Computing weights without inhibition...")
+    def compute_phi(self):
+        """
 
-raw_connectivity = np.zeros((n_pop, n_pop))
-forward_connectivity = np.zeros((n_pop, n_pop))
-backward_connectivity = np.zeros((n_pop, n_pop))
+        :return:
+        """
+        print("Computing oscillatory inhibition values...")
 
-mu_forward = np.arange(p-1)
-mu_backward = np.arange(1, p)
+        for t in range(self.num_iter):
+            self.phi[t] = sinusoid(
+                min_=self.phi_min,
+                max_=self.phi_max,
+                period=self.tau_0,
+                t=t,
+                phase_shift=self.phase_shift * self.tau_0,
+                dt=self.dt
+            )
 
-for v in tqdm(range(n_pop)):
-    for w in range(n_pop):
+        self.inhibition = - self.phi
 
-        raw_connectivity[v, w] = np.sum(
-            (v_pop[v, :] - f)
-            * (v_pop[w, :] - f)
-        )
+    def compute_memory_patterns(self):
+        """
 
-        forward_connectivity[v, w] = np.sum(
-            v_pop[v, mu_forward] *
-            v_pop[w, mu_forward + 1]
-        )
+        :return:
+        """
+        print("Computing memory patterns...")
 
-        backward_connectivity[v, w] = np.sum(
-            v_pop[v, mu_backward] *
-            v_pop[w, mu_backward - 1]
-        )
+        self.memory_patterns = \
+            np.random.choice([0, 1], p=[1 - self.f, self.f],
+                             size=(self.n, self.p))
 
-# Put factors ============================
+        self.v_pop, self.n_per_pop = \
+            np.unique([tuple(i) for i in self.memory_patterns], axis=0,
+                      return_counts=True)
 
-raw_connectivity *= kappa
-forward_connectivity *= j_forward
-backward_connectivity *= j_backward
-inhibition *= kappa
+        self.s = self.n_per_pop / self.n
 
-# ========================================
+        self.n_pop = len(self.v_pop)
 
-if no_fancy_connection:
-    print("NO FANCY CONNECTION")
-    forward_connectivity[:] = 0
-    backward_connectivity[:] = 0
+        print("Computing who is encoding what...")
 
-weights_without_inhibition = \
-    raw_connectivity \
-    + forward_connectivity \
-    + backward_connectivity
+        self.encoding = [
+            (self.v_pop[:, mu] == 1).nonzero()[0] for mu in range(p)]
 
-print("Computing uncorrelated Gaussian noise...")
+    def compute_connectivity(self):
+        """
 
-noise = np.zeros((n_pop, n_iter))
+        :return:
+        """
+        print("XXXX")
 
-for i in range(n_pop):
-    noise[i] = \
-        np.random.normal(loc=0,
-                         scale=(xi_0 * n_per_pop[i]) ** 0.5,
-                         size=n_iter) \
-        / n_per_pop[i] * magic_number_noise
+        for v in tqdm(range(self.n_pop)):
+            for w in range(self.n_pop):
+                self.raw_connectivity[v, w] = np.sum(
+                    (self.v_pop[v, :] - self.f)
+                    * (self.v_pop[w, :] - self.f)
+                )
 
-if no_noise:
-    print("NO NOISE")
-    noise[:] = 0
+                self.forward_connectivity[v, w] = np.sum(
+                    self.v_pop[v, self.mu_forward] *
+                    self.v_pop[w, self.mu_forward + 1]
+                )
 
-print("\n\nBasic info")
-print("-" * 10)
-print("N pop", n_pop)
-print("-" * 10)
+                self.backward_connectivity[v, w] = np.sum(
+                    self.v_pop[v, self.mu_backward] *
+                    self.v_pop[w, self.mu_backward - 1]
+                )
 
-print("Present pattern...")
+    def add_factors(self):
+        """
+
+        :return:
+        """
+        print("XXXXX")
+
+        self.raw_connectivity *= self.kappa
+        self.forward_connectivity *= self.j_forward
+        self.backward_connectivity *= self.j_backward
+        self.inhibition *= self.kappa
+
+    def compute_noise(self):
+        """
+
+        :return:
+        """
+        print("Computing uncorrelated Gaussian noise...")
+
+        noise = np.zeros((self.n_pop, self.n_iter))
+
+        for i in range(self.n_pop):
+            noise[i] = \
+                np.random.normal(loc=0,
+                                 scale=(self.xi_0 * self.n_per_pop[i]) ** 0.5,
+                                 size=self.n_iter) \
+                / self.n_per_pop[i] * self.param_noise
+
+    def initialize(self):
+        """
+
+        :return:
+        """
+        print("XXXXXXX")
+
+        self.compute_phi()
+        self.compute_memory_patterns()
+        self.compute_connectivity()
+        self.add_factors()
+        self.compute_noise()
+
+
+
+
 
 # Initialize firing rates
 firing_rates = np.zeros(n_pop)
@@ -192,7 +244,7 @@ for t in tqdm(range(n_iter)):
     # Update firing rates
     firing_rates[:] = 0
     cond = (c + theta) > 0
-    firing_rates[cond] = (c[cond] * magic_number_current + theta) ** gamma
+    firing_rates[cond] = (c[cond] * param_current + theta) ** gamma
 
     for mu in range(p):
 
@@ -207,15 +259,36 @@ for t in tqdm(range(n_iter)):
         currents_memory[mu, t] = \
             np.average(c_mu, weights=n_corresponding)
 
-# Make plots
-plot_activity_image(average_firing_rates_per_memory, dt=dt)
-plot_activity_curve(average_firing_rates_per_memory, dt=dt)
-plot_inhibition(inhibition, dt=dt)
-plot_phi(phi, dt=dt)
-plot_noise(noise, dt=dt)
-plot_weights(weights_without_inhibition, name='weights_without_inhibition')
-plot_weights(raw_connectivity, name='raw_connectivity')
-plot_weights(forward_connectivity, name='forward_connectivity')
-plot_weights(backward_connectivity, name='backward_connectivity')
-plot_current_curve(currents, dt=dt, name="currents_population")
-plot_current_curve(currents_memory, dt=dt, name="currents_memory")
+
+def main():
+    fig_folder = 'fig'
+    os.makedirs(fig_folder, exist_ok=True)
+
+    np.seterr(all='raise')
+    np.random.seed(123)
+
+    network = Network()
+
+    # Plots
+    plot.activity_image(network.average_firing_rates_per_memory, dt=network.dt)
+    plot.activity_curve(network.average_firing_rates_per_memory, dt=network.dt)
+    plot.inhibition(network.inhibition, dt=network.dt)
+    plot.phi(network.phi, dt=network.dt)
+    plot.noise(network.noise, dt=network.dt)
+
+    plot.weights(network.weights_without_inhibition,
+                 name="weights_without_inhibition")
+    plot.weights(network.raw_connectivity,
+                 name="raw_connectivity")
+    plot.weights(network.forward_connectivity,
+                 name="forward_connectivity")
+    plot.weights(network.backward_connectivity,
+                 name="backward_connectivity")
+    plot.current_curve(network.currents, dt=network.dt,
+                       name="currents_population")
+    plot.current_curve(network.currents_memory, dt=network.dt,
+                       name="currents_memory")
+
+
+if __name__ == '__main__':
+    main()
