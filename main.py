@@ -88,20 +88,38 @@ class Network:
         self.s = None
         self.n_pop = None
         self.encoding = None
+        self.compute_memory_patterns()
 
         # Connectivity
         self.raw_connectivity = np.zeros((self.n_pop, self.n_pop))
         self.forward_connectivity = np.zeros((self.n_pop, self.n_pop))
         self.backward_connectivity = np.zeros((self.n_pop, self.n_pop))
+        self.weights_without_inhibition = np.zeros((self.n_pop, self.n_pop))
         self.mu_forward = np.arange(self.p - 1)
         self.mu_backward = np.arange(1, self.p)
+
+        # Noise
+        self.noise = np.zeros((self.n_pop, self.num_iter))
+
+        # Neuron dynamics
+        self.firing_rates = np.zeros(self.n_pop)
+        self.c = np.zeros(self.n_pop)
+        self.average_firing_rates_per_memory = np.zeros((self.p,
+                                                         self.num_iter))
+        self.currents = np.zeros((self.n_pop, self.num_iter))
+        self.currents_memory = np.zeros((self.p, self.num_iter))
+
+        #####################
+        # # Start network # #
+        #####################
+        self.start_network()
 
     def compute_phi(self):
         """
 
         :return:
         """
-        print("Computing oscillatory inhibition values...")
+        print("Computing inhibition values...")
 
         for t in range(self.num_iter):
             self.phi[t] = sinusoid(
@@ -137,7 +155,7 @@ class Network:
         print("Computing who is encoding what...")
 
         self.encoding = [
-            (self.v_pop[:, mu] == 1).nonzero()[0] for mu in range(p)]
+            (self.v_pop[:, mu] == 1).nonzero()[0] for mu in range(self.p)]
 
     def compute_connectivity(self):
         """
@@ -163,17 +181,15 @@ class Network:
                     self.v_pop[w, self.mu_backward - 1]
                 )
 
-    def add_factors(self):
-        """
-
-        :return:
-        """
-        print("XXXXX")
-
         self.raw_connectivity *= self.kappa
         self.forward_connectivity *= self.j_forward
         self.backward_connectivity *= self.j_backward
         self.inhibition *= self.kappa
+
+        self.weights_without_inhibition = \
+            self.raw_connectivity \
+            + self.forward_connectivity \
+            + self.backward_connectivity
 
     def compute_noise(self):
         """
@@ -182,16 +198,70 @@ class Network:
         """
         print("Computing uncorrelated Gaussian noise...")
 
-        noise = np.zeros((self.n_pop, self.n_iter))
-
         for i in range(self.n_pop):
-            noise[i] = \
+            self.noise[i] = \
                 np.random.normal(loc=0,
                                  scale=(self.xi_0 * self.n_per_pop[i]) ** 0.5,
-                                 size=self.n_iter) \
+                                 size=self.num_iter) \
                 / self.n_per_pop[i] * self.param_noise
 
-    def initialize(self):
+    def initialize_neuron_dynamics(self):
+        """
+
+        :return:
+        """
+        print("Computing uncorrelated Gaussian noise...")
+
+        # Initialize firing rates
+        self.firing_rates[self.encoding[self.first_p]] = self.r_ini
+
+        # initialize current
+        c_ini = self.r_ini ** (1 / self.gamma) - self.theta
+        self.c[self.encoding[self.first_p]] = c_ini
+
+    def compute_neuron_dynamics(self):
+        """
+
+        :return:
+        """
+        print("Compute activation for each time step")
+
+        for t in tqdm(range(self.num_iter)):
+
+            # Update current
+            for v in range(self.n_pop):
+                # Compute weights
+                weights = (self.weights_without_inhibition[v, :]
+                           + self.inhibition[t]) / self.n
+
+                # Compute input
+                input_v = np.sum(weights[:] * self.n_per_pop[:] *
+                                 self.firing_rates[:])
+
+                self.c[v] += self.time_param * (-self.c[v] + input_v
+                                                + self.noise[v, t])
+
+                self.currents[v, t] = self.c[v]
+
+            # Update firing rates
+            self.firing_rates[:] = 0
+            cond = (self.c + self.theta) > 0
+            self.firing_rates[cond] = (self.c[cond] * self.param_current
+                                       + self.theta) ** self.gamma
+
+            for mu in range(self.p):
+                fr = self.firing_rates[self.encoding[mu]]
+                n_corresponding = self.n_per_pop[self.encoding[mu]]
+
+                self.average_firing_rates_per_memory[mu, t] = \
+                    np.average(fr, weights=n_corresponding)
+
+                c_mu = self.c[self.encoding[mu]]
+
+                self.currents_memory[mu, t] = \
+                    np.average(c_mu, weights=n_corresponding)
+
+    def start_network(self):
         """
 
         :return:
@@ -199,72 +269,17 @@ class Network:
         print("XXXXXXX")
 
         self.compute_phi()
-        self.compute_memory_patterns()
         self.compute_connectivity()
-        self.add_factors()
         self.compute_noise()
-
-
-
-
-
-# Initialize firing rates
-firing_rates = np.zeros(n_pop)
-firing_rates[encoding[first_p]] = r_ini
-
-# initialize current
-c = np.zeros(n_pop)
-c_ini = r_ini ** (1/gamma) - theta
-c[encoding[first_p]] = c_ini
-
-print("Compute activation for each time step")
-
-# For plot
-average_firing_rates_per_memory = np.zeros((p, n_iter))
-
-currents = np.zeros((n_pop, n_iter))
-
-currents_memory = np.zeros((p, n_iter))
-
-for t in tqdm(range(n_iter)):
-
-    # Update current
-    for v in range(n_pop):
-
-        # Compute weights
-        weights = (weights_without_inhibition[v, :] + inhibition[t]) / n
-
-        # Compute input
-        input_v = np.sum(weights[:] * n_per_pop[:] * firing_rates[:])
-
-        c[v] += time_param * (-c[v] + input_v + noise[v, t])
-
-        currents[v, t] = c[v]
-
-    # Update firing rates
-    firing_rates[:] = 0
-    cond = (c + theta) > 0
-    firing_rates[cond] = (c[cond] * param_current + theta) ** gamma
-
-    for mu in range(p):
-
-        fr = firing_rates[encoding[mu]]
-        n_corresponding = n_per_pop[encoding[mu]]
-
-        average_firing_rates_per_memory[mu, t] = \
-            np.average(fr, weights=n_corresponding)
-
-        c_mu = c[encoding[mu]]
-
-        currents_memory[mu, t] = \
-            np.average(c_mu, weights=n_corresponding)
+        self.initialize_neuron_dynamics()
+        self.compute_neuron_dynamics()
 
 
 def main():
-    fig_folder = 'fig'
+    fig_folder = "fig"
     os.makedirs(fig_folder, exist_ok=True)
 
-    np.seterr(all='raise')
+    np.seterr(all="raise")
     np.random.seed(123)
 
     network = Network()
