@@ -22,7 +22,7 @@ FIG_FOLDER = "fig"
 os.makedirs(FIG_FOLDER, exist_ok=True)
 
 
-def phi(phi_values, dt=1.):
+def sine_wave(sine_wave_values, dt=1.):
     """
     The docstring for a module should generally list the classes, exceptions
     and functions (and any other objects) that are exported by the module,
@@ -36,65 +36,87 @@ def phi(phi_values, dt=1.):
 
     fig, ax = plt.subplots()
 
-    n_iteration = len(phi_values)
+    n_iteration = len(sine_wave_values)
 
     x = np.arange(n_iteration, dtype=float) * dt
-    y = phi_values
+    y = sine_wave_values
 
     ax.plot(x, y)
-    ax.set_title("Inhibitory oscillations")
+    ax.set_title("Sine wave")
     ax.set_xlabel("Time (cycles)")
-    ax.set_ylabel("$\phi$")
+    ax.set_ylabel(r"$\phi$")
+    plt.tight_layout()
 
-    plt.savefig(os.path.join(FIG_FOLDER, "sin.pdf"))
+    plt.savefig(os.path.join(FIG_FOLDER, "sine_wave.pdf"))
 
 
-def noise(noise_values, dt=1.):
+def simplified_sine_wave(sine_wave_values, dt=1.):
+    fig, ax = plt.subplots(figsize=(6.4, 1))
 
+    n_iteration = len(sine_wave_values)
+
+    x = np.arange(n_iteration, dtype=float) * dt
+    y = sine_wave_values
+
+    ax.plot(x, y)
+
+    ax.set_yticks(())
+
+    ax.set_xlabel("t")
+    ax.set_ylabel(r"$\phi$")
+    plt.tight_layout()
+
+    plt.savefig(os.path.join(FIG_FOLDER, "sine_wave_simplified.pdf"))
+
+
+def noise(noise_values, stop_time=2, dt=1.):
     fig, ax = plt.subplots()
 
     n_iteration = noise_values.shape[1]
 
-    x = np.arange(n_iteration, dtype=float) * dt
-    ys = noise_values
+    time_range = stop_time * 1000
 
-    for y in ys:
-        ax.plot(x, y, linewidth=0.5, alpha=0.2)
+    x = np.arange(time_range, dtype=float) * dt
+
+    for y in noise_values:
+        ax.plot(x, y[:time_range], linewidth=0.5, alpha=0.2)
 
     ax.set_xlabel("Time (cycles)")
     ax.set_ylabel("Noise")
+    ax.set_title("Noise")
+    plt.tight_layout()
 
     plt.savefig(os.path.join(FIG_FOLDER, "noise.pdf"))
 
 
-def activity_curve(firing_rates, dt=1.):
-
+def firing_rates(f_rates, dt=1.):
     fig, ax = plt.subplots()
 
-    n_iteration = firing_rates.shape[1]
+    n_iteration = f_rates.shape[1]
 
     x = np.arange(n_iteration, dtype=float) * dt
-    ys = firing_rates
+    ys = f_rates
 
     for i, y in enumerate(ys):
         ax.plot(x, y, linewidth=0.5, alpha=1)
 
-    ax.set_xlabel('Time (cycles)')
-    ax.set_ylabel('Average firing rate')
+    ax.set_xlabel("Time (cycles)")
+    ax.set_ylabel("Average firing rate")
+    ax.set_title("Firing Rates")
+    plt.tight_layout()
 
-    plt.savefig(os.path.join(FIG_FOLDER, "activity_curve.pdf"))
+    plt.savefig(os.path.join(FIG_FOLDER, "firing_rates.pdf"))
 
 
-def activity_image(firing_rates, dt=1.):
-
+def attractors(f_rates, dt=1.):
     fig, ax = plt.subplots()
 
-    n_memory, n_iteration = firing_rates.shape
+    n_memory, n_iteration = f_rates.shape
 
-    im = ax.imshow(firing_rates, cmap="jet",
+    im = ax.imshow(f_rates, cmap="jet",
                    extent=[
-                        0, n_iteration * dt,
-                        n_memory - 0.5, -0.5
+                       0, n_iteration * dt,
+                          n_memory - 0.5, -0.5
                    ])
 
     ax.set_xlabel("Time (cycles)")
@@ -104,14 +126,14 @@ def activity_image(firing_rates, dt=1.):
 
     ax.set_aspect(aspect='auto')
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+    ax.set_title("Attractors")
 
     plt.tight_layout()
 
-    plt.savefig(os.path.join(FIG_FOLDER, "activity_image.pdf"))
+    plt.savefig(os.path.join(FIG_FOLDER, "attractors.pdf"))
 
 
 def inhibition(inhibition_values, dt=1.):
-
     fig, ax = plt.subplots()
 
     n_iteration = len(inhibition_values)
@@ -123,57 +145,75 @@ def inhibition(inhibition_values, dt=1.):
 
     ax.set_xlabel("Time (cycles)")
     ax.set_ylabel("Inhibition")
+    ax.set_title("Inhibition")
 
-    plt.savefig(os.path.join(FIG_FOLDER, "inhibition_values.pdf"))
+    plt.tight_layout()
+
+    plt.savefig(os.path.join(FIG_FOLDER, "inhibition.pdf"))
 
 
-def weights(weights_array, name='weights_array'):
+def weights(weights_array, type_):
+    titles = {
+        "no_inhibition": {"title": "Weights Without Inhibition",
+                          "filename": "weights_without_inhibition"},
+        "regular": {"title": "Regular Weights",
+                    "filename": "weights_regular"},
+        "forward": {"title": "Forward Weights",
+                    "filename": "weights_forward"},
+        "backward": {"title": "Backward Weights",
+                     "filename": "weights_backward"}}
 
     fig, ax = plt.subplots()
 
-    ax.set_xlabel("Neuron v")
-    ax.set_ylabel("Neuron w")
+    ax.set_xlabel(r"Population $i$")
+    ax.set_ylabel(r"Population $j$")
 
-    ax.set_title(name)
+    ax.set_title(titles[type_]["title"])
 
     im = ax.imshow(weights_array)
 
+    plt.tight_layout()
+
     fig.colorbar(im, ax=ax)
 
-    plt.savefig(os.path.join(FIG_FOLDER, f"{name}.pdf"))
+    plt.savefig(os.path.join(FIG_FOLDER, titles[type_]["filename"] + ".pdf"))
 
 
-def current_curve(currents, dt=1., name="current"):
-
+def currents(current_values, type_, dt=1.):
     fig, ax = plt.subplots()
 
-    n_iteration = currents.shape[1]
+    titles = {
+        "population": {"title": "Population Currents",
+                       "filename": "currents_populations"},
+        "memory": {"title": "Memory Currents",
+                   "filename": "currents_memory"}}
+
+    n_iteration = current_values.shape[1]
 
     x = np.arange(n_iteration, dtype=float) * dt
-    ys = currents
 
-    for i, y in enumerate(ys):
+    for i, y in enumerate(current_values):
         ax.plot(x, y, linewidth=0.5, alpha=1)
 
     ax.set_xlabel("Time (cycles)")
     ax.set_ylabel("Average current")
-    ax.set_title(f"{name}")
+    ax.set_title(titles[type_]["title"])
 
-    plt.savefig(os.path.join(FIG_FOLDER, f"{name}.pdf"))
+    plt.tight_layout()
 
+    plt.savefig(os.path.join(FIG_FOLDER, titles[type_]["filename"] + ".pdf"))
 
-def romani(activity):
-
-    fig, ax = plt.subplots()
-    im = ax.imshow(activity, aspect="auto",
-                   cmap="jet")
-    fig.colorbar(im, ax=ax)
-
-    ax.set_xlabel("Time")
-    ax.set_ylabel("Memories")
-
-    ax.yaxis.set_major_locator(MaxNLocator(integer=True))
-
-    fig.tight_layout()
-
-    plt.show()
+# def romani(activity):
+#     fig, ax = plt.subplots()
+#     im = ax.imshow(activity, aspect="auto",
+#                    cmap="jet")
+#     fig.colorbar(im, ax=ax)
+#
+#     ax.set_xlabel("Time")
+#     ax.set_ylabel("Memories")
+#
+#     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
+#
+#     fig.tight_layout()
+#
+#     plt.show()

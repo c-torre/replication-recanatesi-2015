@@ -28,14 +28,13 @@ should also list the modules and subpackages exported by the package.
 import os
 
 import numpy as np
-from numpy.core._multiarray_umath import ndarray
 from tqdm import tqdm
 
 import tools.plots as plot
 from tools.sinusoid import sinusoid
 
-FIG_FOLDER = "fig"
-os.makedirs(FIG_FOLDER, exist_ok=True)
+FIG_DIR = "fig"
+os.makedirs(FIG_DIR, exist_ok=True)
 
 np.seterr(all="raise")
 
@@ -60,7 +59,7 @@ class Network:
                  t_decay=0.01,
                  # Gain
                  threshold=0,
-                 gain_exp=2/5,
+                 gain_exp=2 / 5,
                  # Hebbian rule
                  excitation=13000,
                  sparsity=0.01,
@@ -70,8 +69,8 @@ class Network:
                  t_oscillation=1,
                  phase_shift=0.75,
                  # Short term association
-                 cont_forward=1500,
-                 cont_backward=400,
+                 cont_forth=1500,
+                 cont_back=400,
                  # Time
                  t_tot=14,
                  t_step=0.001,
@@ -102,8 +101,8 @@ class Network:
         self.t_oscillation = t_oscillation
         self.phase_shift = phase_shift
 
-        self.cont_forward = cont_forward
-        self.cont_backward = cont_backward
+        self.cont_forth = cont_forth
+        self.cont_back = cont_back
 
         self.t_tot = t_tot
         self.t_step = t_step
@@ -122,35 +121,36 @@ class Network:
         self.time_param = t_step / t_decay
 
         # Inhibition
-        self.sin = np.zeros(self.num_iter)
+        self.sine_wave = np.zeros(self.num_iter)
         self.inhibition = np.zeros(self.num_iter)
 
         # Memory patterns
         self.memory_patterns = np.zeros((self.num_neurons, self.num_memories))
         self.v_pop = None
-        self.n_per_pop = None
-        self.s = None
-        self.n_pop = None
-        self.encoding = None
+        self.neurons_per_pop = None
+        self.fraction_pop = None
+        self.num_pops = None
+        self.neurons_encoding = None
         self.compute_memory_patterns()
 
         # Connectivity
-        self.regular_connectivity = np.zeros((self.n_pop, self.n_pop))
-        self.forward_connectivity = np.zeros((self.n_pop, self.n_pop))
-        self.backward_connectivity = np.zeros((self.n_pop, self.n_pop))
-        self.weights_without_inhibition = np.zeros((self.n_pop, self.n_pop))
+        self.regular_connectivity = np.zeros((self.num_pops, self.num_pops))
+        self.forward_connectivity = np.zeros((self.num_pops, self.num_pops))
+        self.backward_connectivity = np.zeros((self.num_pops, self.num_pops))
+        self.weights_without_inhibition = np.zeros(
+            (self.num_pops, self.num_pops))
         self.mu_forward = np.arange(self.num_memories - 1)
         self.mu_backward = np.arange(1, self.num_memories)
 
         # Noise
-        self.noise = np.zeros((self.n_pop, self.num_iter))
+        self.noise = np.zeros((self.num_pops, self.num_iter))
 
         # Neuron dynamics
-        self.firing_rates = np.zeros(self.n_pop)
-        self.c = np.zeros(self.n_pop)
+        self.firing_rates = np.zeros([self.num_pops])
+        self.current = np.zeros([self.num_pops])
         self.average_firing_rates_per_memory = np.zeros((self.num_memories,
                                                          self.num_iter))
-        self.currents = np.zeros((self.n_pop, self.num_iter))
+        self.currents = np.zeros((self.num_pops, self.num_iter))
         self.currents_memory = np.zeros((self.num_memories, self.num_iter))
 
         #####################
@@ -170,17 +170,17 @@ class Network:
             np.random.choice([0, 1], p=[1 - self.sparsity, self.sparsity],
                              size=(self.num_neurons, self.num_memories))
 
-        self.v_pop, self.n_per_pop = \
+        self.v_pop, self.neurons_per_pop = \
             np.unique([tuple(i) for i in self.memory_patterns], axis=0,
                       return_counts=True)
 
-        self.s = self.n_per_pop / self.num_neurons
+        self.fraction_pop = self.neurons_per_pop / self.num_neurons
 
-        self.n_pop = len(self.v_pop)
+        self.num_pops = len(self.v_pop)
 
         print("Finding who is encoding what...")
 
-        self.encoding = [
+        self.neurons_encoding = [
             (self.v_pop[:, mu] == 1).nonzero()[0] for mu in range(
                 self.num_memories)]
 
@@ -193,7 +193,7 @@ class Network:
         print("Calculating inhibition values...")
 
         for t in range(self.num_iter):
-            self.sin[t] = sinusoid(
+            self.sine_wave[t] = sinusoid(
                 min_=self.sin_min,
                 max_=self.sin_max,
                 period=self.t_oscillation,
@@ -202,7 +202,7 @@ class Network:
                 dt=self.t_step
             )
 
-        self.inhibition = - self.sin
+        self.inhibition = - self.sine_wave
 
     def compute_connectivity(self):
         """
@@ -212,8 +212,8 @@ class Network:
 
         print("Adjusting regular, forward and backward connectivity...")
 
-        for v in tqdm(range(self.n_pop)):
-            for w in range(self.n_pop):
+        for v in tqdm(range(self.num_pops)):
+            for w in range(self.num_pops):
                 self.regular_connectivity[v, w] = np.sum(
                     (self.v_pop[v, :] - self.sparsity)
                     * (self.v_pop[w, :] - self.sparsity)
@@ -230,8 +230,8 @@ class Network:
                 )
 
         self.regular_connectivity *= self.excitation
-        self.forward_connectivity *= self.cont_forward
-        self.backward_connectivity *= self.cont_backward
+        self.forward_connectivity *= self.cont_forth
+        self.backward_connectivity *= self.cont_back
         self.inhibition *= self.excitation
 
         self.weights_without_inhibition = \
@@ -247,13 +247,13 @@ class Network:
 
         print("Calculating uncorrelated Gaussian noise...")
 
-        for i in range(self.n_pop):
-            self.noise[i] = \
+        for pop in range(self.num_pops):
+            self.noise[pop] = \
                 np.random.normal(loc=0,
-                                 scale=(self.noise_var * self.n_per_pop[i])
-                                 ** 0.5,
+                                 scale=(self.noise_var * self.neurons_per_pop[
+                                     pop]) ** 0.5,
                                  size=self.num_iter) \
-                / self.n_per_pop[i] * self.param_noise
+                / self.neurons_per_pop[pop] * self.param_noise
 
     def initialize_neuron_dynamics(self):
         """
@@ -264,11 +264,12 @@ class Network:
         print("Initializing neuron dynamics...")
 
         # Initialize firing rates
-        self.firing_rates[self.encoding[self.first_memory]] = self.init_rate
+        self.firing_rates[
+            self.neurons_encoding[self.first_memory]] = self.init_rate
 
         # initialize current
         c_ini = self.init_rate ** (1 / self.gain_exp) - self.threshold
-        self.c[self.encoding[self.first_memory]] = c_ini
+        self.current[self.neurons_encoding[self.first_memory]] = c_ini
 
     def compute_neuron_dynamics(self):
         """
@@ -281,34 +282,36 @@ class Network:
         for t in tqdm(range(self.num_iter)):
 
             # Update current
-            for v in range(self.n_pop):
+            for pop in range(self.num_pops):
                 # Compute weights
-                weights = (self.weights_without_inhibition[v, :]
+                weights = (self.weights_without_inhibition[pop, :]
                            + self.inhibition[t]) / self.num_neurons
 
                 # Compute input
-                input_v = np.sum(weights[:] * self.n_per_pop[:] *
+                input_v = np.sum(weights[:] * self.neurons_per_pop[:] *
                                  self.firing_rates[:])
 
-                self.c[v] += self.time_param * (-self.c[v] + input_v
-                                                + self.noise[v, t])
+                self.current[pop] += self.time_param * (
+                        -self.current[pop] + input_v
+                        + self.noise[pop, t])
 
-                self.currents[v, t] = self.c[v]
+                self.currents[pop, t] = self.current[pop]
 
             # Update firing rates
             self.firing_rates[:] = 0
-            cond = (self.c + self.threshold) > 0
-            self.firing_rates[cond] = (self.c[cond] * self.param_current
+            cond = (self.current + self.threshold) > 0
+            self.firing_rates[cond] = (self.current[cond] * self.param_current
                                        + self.threshold) ** self.gain_exp
 
             for mu in range(self.num_memories):
-                fr = self.firing_rates[self.encoding[mu]]
-                n_corresponding = self.n_per_pop[self.encoding[mu]]
+                fr = self.firing_rates[self.neurons_encoding[mu]]
+                n_corresponding = self.neurons_per_pop[
+                    self.neurons_encoding[mu]]
 
                 self.average_firing_rates_per_memory[mu, t] = \
                     np.average(fr, weights=n_corresponding)
 
-                c_mu = self.c[self.encoding[mu]]
+                c_mu = self.current[self.neurons_encoding[mu]]
 
                 self.currents_memory[mu, t] = \
                     np.average(c_mu, weights=n_corresponding)
@@ -326,6 +329,37 @@ class Network:
         self.compute_neuron_dynamics()
 
 
+def plot_all(network):
+    print("Plotting...")
+    plot.attractors(network.average_firing_rates_per_memory,
+                    dt=network.t_step)
+    plot.firing_rates(network.average_firing_rates_per_memory,
+                      dt=network.t_step)
+
+    plot.inhibition(network.inhibition, dt=network.t_step)
+    plot.sine_wave(network.sine_wave, dt=network.t_step)
+    plot.simplified_sine_wave(network.sine_wave, dt=network.t_step)
+
+    plot.noise(network.noise, dt=network.t_step)
+    print(network.noise.shape)
+
+    plot.weights(network.weights_without_inhibition,
+                 type_="no_inhibition")
+    plot.weights(network.regular_connectivity,
+                 type_="regular")
+    plot.weights(network.forward_connectivity,
+                 type_="forward")
+    plot.weights(network.backward_connectivity,
+                 type_="backward")
+
+    plot.currents(network.currents, dt=network.t_step,
+                  type_="population")
+    plot.currents(network.currents_memory, dt=network.t_step,
+                  type_="memory")
+
+    print("Done!")
+
+
 def main():
     """
 
@@ -336,37 +370,12 @@ def main():
           "This program comes with ABSOLUTELY NO WARRANTY.\n"
           "This is free software, and you are welcome to redistribute it\n"
           "under certain conditions; see the 'LICENSE' file for details.\n")
+
     np.random.seed(123)
 
     network = Network()
 
-    # Plots
-    print("Plotting...")
-    plot.activity_image(network.average_firing_rates_per_memory,
-                        dt=network.t_step)
-    plot.activity_curve(network.average_firing_rates_per_memory,
-                        dt=network.t_step)
-
-    plot.inhibition(network.inhibition, dt=network.t_step)
-    plot.phi(network.sin, dt=network.t_step)
-
-    plot.noise(network.noise, dt=network.t_step)
-
-    plot.weights(network.weights_without_inhibition,
-                 name="weights_without_inhibition")
-    plot.weights(network.regular_connectivity,
-                 name="regular_connectivity")
-    plot.weights(network.forward_connectivity,
-                 name="forward_connectivity")
-    plot.weights(network.backward_connectivity,
-                 name="backward_connectivity")
-
-    plot.current_curve(network.currents, dt=network.t_step,
-                       name="currents_population")
-    plot.current_curve(network.currents_memory, dt=network.t_step,
-                       name="currents_memory")
-
-    print("Done!")
+    plot_all(network)
 
 
 if __name__ == '__main__':
