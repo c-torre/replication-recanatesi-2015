@@ -330,6 +330,7 @@ class Network:
 
 
 def plot_all(network):
+
     print("Plotting...")
     plot.attractors(network.average_firing_rates_per_memory,
                     dt=network.t_step)
