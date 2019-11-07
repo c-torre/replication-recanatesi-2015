@@ -1,6 +1,6 @@
 # Replication of Recanatesi et al. (2015) "Neural Network Model of Memory Retrieval"
 
-Replication authors: [Carlos de la Torre-Ortiz](https://github.com/c-torre) and [Aurélien Nioche](https://github.com/AurelienNioche/)
+Replication authors: [Carlos de la Torre-Ortiz](https://github.com/c-torre) and [Aurélien Nioche](https://github.com/AurelienNioche/).
 
 Original article: S. Recanatesi, M. Katkov, S. Romani, M. Tsodyks, Neural Network Model of Memory Retrieval, Frontiers in Computational Neuroscience. 9 (2015) 149. [doi:10.3389/fncom.2015.00149](https://doi.org/10.3389/fncom.2015.00149).
 
