@@ -16,8 +16,6 @@ Python 3 with packages:
 
 ```pip3 install --user numpy matplotlib tqdm```
  
-Versions used in the replication: Python 3.7.4, NumPy 1.17.2, matplotlib 3.1.1, and tqdm 4.28.1.
-
 
 ## Usage
 
@@ -35,12 +33,28 @@ The network will run automatically and generate all plots in the */fig* director
 ## Structure
 
 ```
-├── tools                                     # different model utilities
-│   ├── __init__.py 
-│   ├── plots.py                           # plotting functions
-│   └── sine_wave.py                 # sine wave function
-├── LICENSE                               # GPLv3   
-├── main.py                               # <Run this file to start the model>
-└── README.md                       # this file
+├── tools                                    # different model utilities
+│   ├── __init__.py                          
+│   ├── plots.py                             # plotting functions
+│   └── sine_wave.py                         # sine wave function
+├── LICENSE                                  # GPLv3   
+├── main.py                                  # <Run this file to start the model>
+└── README.md                                # this file
 ```
 
+
+## License
+
+[The GNU General Public License version 3](https://www.gnu.org/licenses/#GPL)
+
+
+## Software Environment
+
+```
+OS: Manjaro GNU/Linux 18.1.2 x86_64
+Python: 3.7.4
+NumPy: 1.17.2
+matplotlib: 3.1.1
+tqdm 4.28.1
+```
+Also tested on: Ubuntu GNU/Linux 18 LTS, and MacOS Mojave.
