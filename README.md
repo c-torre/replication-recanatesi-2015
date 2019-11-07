@@ -39,7 +39,8 @@ The network will run automatically and generate all plots in the */fig* director
 │   └── sine_wave.py                         # sine wave function
 ├── LICENSE                                  # GPLv3   
 ├── main.py                                  # <Run this file to start the model>
-└── README.md                                # readme; you are here
+├── README.md                                # readme; you are here
+└── re-neural-network-model-of-...pdf        # replication paper
 ```
 
 
