@@ -52,7 +52,8 @@ The network will run automatically and generate all plots in the */fig* director
 
 ```
 OS: Manjaro GNU/Linux 18.1.2 x86_64
-Python: 3.7.4
+Python: 3.7.4 (default, Oct  4 2019, 06:57:26)
+[GCC 9.2.0] on linux
 NumPy: 1.17.2
 matplotlib: 3.1.1
 tqdm 4.28.1
