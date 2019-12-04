@@ -17,15 +17,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
+from multiprocessing import cpu_count
+from multiprocessing.pool import Pool
 
 import numpy as np
 from tqdm import tqdm
 
 import tools.plots as plot
 import tools.sine_wave
-
-from multiprocessing.pool import Pool
-from multiprocessing import cpu_count
 
 FIG_DIR = "fig"
 os.makedirs(FIG_DIR, exist_ok=True)
@@ -34,13 +33,12 @@ np.seterr(all="raise")
 
 np.random.seed(123)
 
-
 # === Parameters ===
 # Architecture
 num_neurons = 100000
 num_memories = 16
 # Activation
-t_decay = 0.01
+t_decay = 0.1
 # Gain
 threshold = 0
 gain_exp = 2 / 5
@@ -56,7 +54,7 @@ phase_shift = 0.75
 cont_forth = 1500
 cont_back = 400
 # Time
-t_tot = 14
+t_tot = 2  # 14
 t_step = 0.001
 # Noise
 noise_var = 65
@@ -64,13 +62,13 @@ noise_var = 65
 init_rate = 1
 first_memory = 7
 # Replication parameters
-param_noise = 10
-param_current = 4.75
+param_noise = 1 #10
+param_current = 1 # 4.75
+
 # ==================
 
 
 def inside_loop_connectivity_matrices(arg):
-
     i, num_pops, pop, backward_cont, forward_cont = arg
 
     regular = np.zeros(num_pops)
@@ -98,7 +96,6 @@ def inside_loop_connectivity_matrices(arg):
 
 def compute_connectivity_matrices(num_pops, pop, forward_cont,
                                   backward_cont):
-
     regular_connectivity = np.zeros((num_pops, num_pops))
     forward_connectivity = np.zeros((num_pops, num_pops))
     backward_connectivity = np.zeros((num_pops, num_pops))
@@ -114,7 +111,6 @@ def compute_connectivity_matrices(num_pops, pop, forward_cont,
         pool.join()
 
     for i in range(num_pops):
-
         regular, forward, backward = r[i]
         regular_connectivity[i, :] = regular
         forward_connectivity[i, :] = forward
@@ -164,7 +160,6 @@ def compute_connectivity_matrices(num_pops, pop, forward_cont,
 
 
 def main():
-
     print("<[Re] Recanatesi (2015)>  Copyright (C) <2019>\n"
           "<de la Torre-Ortiz C, Nioche A>\n"
           "This program comes with ABSOLUTELY NO WARRANTY.\n"
@@ -230,10 +225,10 @@ def main():
         compute_connectivity_matrices(num_pops, pop, forward_cont,
                                       backward_cont)
 
-    regular_connectivity *= excitation
+    regular_connectivity *= relative_excitation#excitation xxx
     forward_connectivity *= cont_forth
     backward_connectivity *= cont_back
-    inhibition *= excitation
+    inhibition *= excitation * 0.5 # xxx TODO try 0.3 next
 
     weights_without_inhibition = \
         regular_connectivity \
@@ -248,8 +243,8 @@ def main():
             np.random.normal(
                 loc=0,
                 scale=(noise_var * neurons_per_pop[pop]) ** 0.5,
-                size=num_iter) \
-            / neurons_per_pop[pop] * param_noise
+                size=num_iter) #\ xxx
+            #/ neurons_per_pop[pop] * param_noise xxx
 
     # Initialize firing rates
     firing_rates[neurons_encoding[first_memory]] = init_rate
@@ -267,10 +262,10 @@ def main():
         for pop in range(num_pops):
             # Compute weights
             weights = (weights_without_inhibition[pop, :]
-                       + inhibition[t]) / num_neurons
+                       + inhibition[t]) #/ num_neurons xxx
 
-            # Compute input
-            input_v = np.sum(weights[:] * neurons_per_pop[:] *
+            # Compute input     CHANGE neur to neurons_per_pop[:] xxx
+            input_v = np.sum(weights[:] * (neurons_per_pop[:]/num_neurons) *
                              firing_rates[:])
 
             current[pop] += time_param * (
@@ -322,6 +317,7 @@ def main():
                  type_="backward", fig_num=3)
 
     plot.noise(noise, dt=t_step)
+
     print("Done!")
 
 
