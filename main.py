@@ -116,9 +116,9 @@ def compute_connectivity_matrices(num_pops, pop, forward_cont,
     for i in range(num_pops):
 
         regular, forward, backward = r[i]
-        regular_connectivity[i, :] = regular[i]
-        forward_connectivity[i, :] = forward[i]
-        backward_connectivity[i, :] = backward[i]
+        regular_connectivity[i, :] = regular
+        forward_connectivity[i, :] = forward
+        backward_connectivity[i, :] = backward
 
     return regular_connectivity, forward_connectivity, backward_connectivity
 
