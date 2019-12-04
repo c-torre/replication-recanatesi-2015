@@ -20,7 +20,6 @@ import os
 
 import numpy as np
 from tqdm import tqdm
-from deco import concurrent, synchronized
 
 import tools.plots as plot
 import tools.sine_wave
