@@ -134,8 +134,8 @@ def main():
                                        size=(num_neurons, num_memories))
 
     # Compute populations
-    pop, neurons_per_pop = np.unique([tuple(i) for i in memory_patterns], axis=0,
-                                     return_counts=True)
+    pop, neurons_per_pop = np.unique([tuple(i) for i in memory_patterns],
+                                     axis=0, return_counts=True)
 
     num_pops = len(pop)
 
@@ -203,10 +203,10 @@ def main():
     regular_connectivity, forward_connectivity, backward_connectivity = \
         connectivities
 
-    regular_connectivity *= excitation
+    regular_connectivity *= excitation / num_neurons
     forward_connectivity *= cont_forth
     backward_connectivity *= cont_back
-    inhibition *= excitation  # * 0.5 # xxx TODO try 0.3 next
+    inhibition *= excitation / num_neurons
 
     weights_without_inhibition = \
         regular_connectivity \
@@ -221,8 +221,8 @@ def main():
             np.random.normal(
                 loc=0,
                 scale=(noise_var * neurons_per_pop[pop]) ** 0.5,
-                size=num_iter) \
-            / neurons_per_pop[pop] * param_noise
+                size=num_iter)  # \
+        # / neurons_per_pop[pop] * param_noise
 
     # Initialize firing rates
     firing_rates[neurons_encoding[first_memory]] = init_rate
@@ -240,12 +240,11 @@ def main():
         for pop in range(num_pops):
             # Compute weights
             weights = (weights_without_inhibition[pop, :]
-                       + inhibition[t]) #/ num_neurons
+                       + inhibition[t])  # / num_neurons
 
             # Compute input     CHANGE neur to neurons_per_pop[:]
-            sv = (neurons_per_pop[:]/num_neurons)
-            input_v = np.sum(weights[:] * sv *
-                             firing_rates[:])
+            sv = (neurons_per_pop[:] / num_neurons)
+            input_v = np.sum(weights[:] * sv * firing_rates[:])
 
             current[pop] += time_param * (
                     -current[pop] + input_v
