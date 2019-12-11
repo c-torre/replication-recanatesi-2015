@@ -203,10 +203,10 @@ def main():
     regular_connectivity, forward_connectivity, backward_connectivity = \
         connectivities
 
-    regular_connectivity *= excitation / num_neurons
-    forward_connectivity *= cont_forth / num_neurons
-    backward_connectivity *= cont_back / num_neurons
-    inhibition *= excitation / num_neurons
+    regular_connectivity *= excitation  # MOD REMOVED / num_neurons
+    forward_connectivity *= cont_forth
+    backward_connectivity *= cont_back
+    inhibition *= excitation  # MOD REMOVED / num_neurons
 
     weights_without_inhibition = \
         regular_connectivity \
@@ -221,8 +221,8 @@ def main():
             np.random.normal(
                 loc=0,
                 scale=(noise_var * neurons_per_pop[pop]) ** 0.5,
-                size=num_iter)  # \
-        # / neurons_per_pop[pop] * param_noise
+                size=num_iter) \
+            / neurons_per_pop[pop] * param_noise  # MOD ADDED BACK
 
     # Initialize firing rates
     firing_rates[neurons_encoding[first_memory]] = init_rate
@@ -243,7 +243,7 @@ def main():
                        + inhibition[t])  # / num_neurons
 
             # Compute input     CHANGE neur to neurons_per_pop[:]
-            sv = (neurons_per_pop[:] / num_neurons)
+            sv = (neurons_per_pop[:] / num_neurons)  # DID NOT CHANGE
             input_v = np.sum(weights[:] * sv * firing_rates[:])
 
             current[pop] += time_param * (
