@@ -39,7 +39,7 @@ np.random.seed(123)
 num_neurons = 100000
 num_memories = 16
 # Activation
-t_decay = 0.1
+t_decay = 0.01
 # Gain
 threshold = 0
 gain_exp = 2 / 5
@@ -55,7 +55,7 @@ phase_shift = 0.75
 cont_forth = 1500
 cont_back = 400
 # Time
-t_tot = 1.0  # 14
+t_tot = 5.0  # 14
 t_step = 0.001
 # Noise
 noise_var = 65
@@ -63,7 +63,7 @@ noise_var = 65
 init_rate = 1
 first_memory = 7
 # Replication parameters
-param_noise = 0.01
+param_noise = 1
 param_current = 1  # 4.75
 
 
@@ -120,6 +120,7 @@ def compute_connectivity_matrices(num_pops, pop, forward_cont,
 
     return regular_connectivity, forward_connectivity, backward_connectivity
 
+
 def main():
     print("<[Re] Recanatesi (2015)>  Copyright (C) <2019>\n"
           "<de la Torre-Ortiz C, Nioche A>\n"
@@ -143,7 +144,7 @@ def main():
 
     # === Other pre-computations ===
     num_iter = int(t_tot / t_step)
-    relative_excitation = excitation / num_neurons
+    # relative_excitation = excitation / num_neurons
     time_param = t_step / t_decay
 
     # Inhibition
@@ -205,7 +206,7 @@ def main():
     regular_connectivity *= excitation
     forward_connectivity *= cont_forth
     backward_connectivity *= cont_back
-    inhibition *= excitation # * 0.5 # xxx TODO try 0.3 next
+    inhibition *= excitation  # * 0.5 # xxx TODO try 0.3 next
 
     weights_without_inhibition = \
         regular_connectivity \
@@ -221,7 +222,7 @@ def main():
                 loc=0,
                 scale=(noise_var * neurons_per_pop[pop]) ** 0.5,
                 size=num_iter) \
-            # / neurons_per_pop[pop] * param_noise
+            / neurons_per_pop[pop] * param_noise
 
     # Initialize firing rates
     firing_rates[neurons_encoding[first_memory]] = init_rate
