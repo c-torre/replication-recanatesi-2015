@@ -227,9 +227,10 @@ bkp_file = "bkp/connectivity.p"
 os.makedirs(os.path.dirname(bkp_file), exist_ok=True)
 
 if not os.path.exists(bkp_file):
-
-    pickle.dump( compute_connectivity_matrices(num_pops, pop, forward_cont,
-                                  backward_cont), open(bkp_file, "wb"))
+    connectivities = \
+        compute_connectivity_matrices(num_pops, pop,
+                                      forward_cont, backward_cont)
+    pickle.dump(connectivities, open(bkp_file, "wb"))
 
 else:
     print("Loading connectivity from pickle file...")
@@ -238,7 +239,8 @@ else:
 # regular_connectivity, forward_connectivity, backward_connectivity = \
 #     compute_connectivity_matrices(num_pops, pop, forward_cont,
 #                                   backward_cont)
-regular_connectivity, forward_connectivity, backward_connectivity = connectivities
+regular_connectivity, forward_connectivity, backward_connectivity = \
+    connectivities
 
 regular_connectivity *= excitation
 forward_connectivity *= cont_forth
@@ -259,7 +261,7 @@ for pop in range(num_pops):
             loc=0,
             scale=(noise_var * neurons_per_pop[pop]) ** 0.5,
             size=num_iter) \
-        / neurons_per_pop[pop] * param_noise
+        / (neurons_per_pop[pop] * param_noise)
 
 # Initialize firing rates
 firing_rates[neurons_encoding[first_memory]] = init_rate
@@ -280,7 +282,8 @@ for t in tqdm(range(num_iter)):
                    + inhibition[t]) #/ num_neurons
 
         # Compute input     CHANGE neur to neurons_per_pop[:]
-        input_v = np.sum(weights[:] * (neurons_per_pop[:]/num_neurons) *
+        sv = (neurons_per_pop[:]/num_neurons)
+        input_v = np.sum(weights[:] * sv *
                          firing_rates[:])
 
         current[pop] += time_param * (
