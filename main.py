@@ -63,7 +63,8 @@ noise_var = 65
 init_rate = 1
 first_memory = 7
 # Replication parameters
-param_noise = 1
+param_noise = 1000
+param_inhibition = 1
 param_current = 1  # 4.75
 
 
@@ -178,7 +179,7 @@ def main():
             dt=t_step
         )
 
-    inhibition = -sine_wave
+    inhibition = -sine_wave * param_inhibition
 
     # Compute weights
     print("Computing regular, forward and backward connectivity...")
