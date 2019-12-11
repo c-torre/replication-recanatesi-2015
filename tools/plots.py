@@ -210,23 +210,23 @@ def weights(weights_array, type_, fig_num):
     plt.savefig(os.path.join(FIG_DIR, titles[type_]["filename"] + ".pdf"))
 
 
-def noise(noise_values, stop_time=2, dt=1.):
+def noise(noise_values, t_tot, dt):
     """
     Plot noise values.
 
     :param noise_values: array-like
-    :param stop_time: int
+    :param t_tot: int
     :param dt: float
     """
 
     fig, ax = plt.subplots()
 
-    time_range = stop_time * 1000
+    n_time_steps = int(t_tot/dt)
 
-    x = np.arange(time_range, dtype=float) * dt
+    x = np.arange(n_time_steps, dtype=float) * dt
 
     for y in noise_values:
-        ax.plot(x, y[:time_range], linewidth=0.5, alpha=0.2)
+        ax.plot(x, y[:n_time_steps], linewidth=0.5, alpha=0.2)
 
     ax.set_xlabel("Time (cycles)")
     ax.set_ylabel("Noise")
