@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
+import pickle
 from multiprocessing import cpu_count
 from multiprocessing.pool import Pool
 
@@ -54,7 +55,7 @@ phase_shift = 0.75
 cont_forth = 1500
 cont_back = 400
 # Time
-t_tot = 2  # 14
+t_tot = 1  # 14
 t_step = 0.001
 # Noise
 noise_var = 65
@@ -62,8 +63,9 @@ noise_var = 65
 init_rate = 1
 first_memory = 7
 # Replication parameters
-param_noise = 1 #10
-param_current = 1 # 4.75
+param_noise = 0.01
+param_current = 1  # 4.75
+
 
 # ==================
 
@@ -159,167 +161,179 @@ def compute_connectivity_matrices(num_pops, pop, forward_cont,
 #     return currents
 
 
-def main():
-    print("<[Re] Recanatesi (2015)>  Copyright (C) <2019>\n"
-          "<de la Torre-Ortiz C, Nioche A>\n"
-          "This program comes with ABSOLUTELY NO WARRANTY.\n"
-          "This is free software, and you are welcome to redistribute it\n"
-          "under certain conditions; see the 'LICENSE' file for details.\n")
+print("<[Re] Recanatesi (2015)>  Copyright (C) <2019>\n"
+      "<de la Torre-Ortiz C, Nioche A>\n"
+      "This program comes with ABSOLUTELY NO WARRANTY.\n"
+      "This is free software, and you are welcome to redistribute it\n"
+      "under certain conditions; see the 'LICENSE' file for details.\n")
 
-    # Compute memory patterns
-    print("Computing memory patterns and neuron populations...")
-    memory_patterns = np.random.choice([0, 1], p=[1 - sparsity, sparsity],
-                                       size=(num_neurons, num_memories))
+# Compute memory patterns
+print("Computing memory patterns and neuron populations...")
+memory_patterns = np.random.choice([0, 1], p=[1 - sparsity, sparsity],
+                                   size=(num_neurons, num_memories))
 
-    # Compute populations
-    pop, neurons_per_pop = np.unique([tuple(i) for i in memory_patterns],
-                                     axis=0, return_counts=True)
+# Compute populations
+pop, neurons_per_pop = np.unique([tuple(i) for i in memory_patterns], axis=0,
+                                 return_counts=True)
 
-    num_pops = len(pop)
+num_pops = len(pop)
 
-    neurons_encoding = [(pop[:, mu] == 1).nonzero()[0] for mu in
-                        range(num_memories)]
+neurons_encoding = [(pop[:, mu] == 1).nonzero()[0] for mu in
+                    range(num_memories)]
 
-    # === Other pre-computations ===
-    num_iter = int(t_tot / t_step)
-    relative_excitation = excitation / num_neurons
-    time_param = t_step / t_decay
+# === Other pre-computations ===
+num_iter = int(t_tot / t_step)
+relative_excitation = excitation / num_neurons
+time_param = t_step / t_decay
 
-    # Inhibition
-    sine_wave = np.zeros(num_iter)
+# Inhibition
+sine_wave = np.zeros(num_iter)
 
-    # Connectivity
-    forward_cont = np.arange(num_memories - 1)
-    backward_cont = np.arange(1, num_memories)
+# Connectivity
+forward_cont = np.arange(num_memories - 1)
+backward_cont = np.arange(1, num_memories)
 
-    # Noise
-    noise = np.zeros((num_pops, num_iter))
+# Noise
+noise = np.zeros((num_pops, num_iter))
 
-    # Neuron dynamics
-    firing_rates = np.zeros([num_pops])
-    current = np.zeros([num_pops])
-    average_firing_rates_per_memory = np.zeros((num_memories, num_iter))
-    currents = np.zeros((num_pops, num_iter))
-    currents_memory = np.zeros((num_memories, num_iter))
-    # ==============================
+# Neuron dynamics
+firing_rates = np.zeros([num_pops])
+current = np.zeros([num_pops])
+average_firing_rates_per_memory = np.zeros((num_memories, num_iter))
+currents = np.zeros((num_pops, num_iter))
+currents_memory = np.zeros((num_memories, num_iter))
+# ==============================
 
-    # Compute sine wave
-    print("Calculating inhibition values...")
+# Compute sine wave
+print("Calculating inhibition values...")
 
-    for t in range(num_iter):
-        sine_wave[t] = tools.sine_wave.sinusoid(
-            min_=sin_min,
-            max_=sin_max,
-            period=t_oscillation,
-            t=t,
-            phase_shift=phase_shift * t_oscillation,
-            dt=t_step
-        )
+for t in range(num_iter):
+    sine_wave[t] = tools.sine_wave.sinusoid(
+        min_=sin_min,
+        max_=sin_max,
+        period=t_oscillation,
+        t=t,
+        phase_shift=phase_shift * t_oscillation,
+        dt=t_step
+    )
 
-    inhibition = -sine_wave
+inhibition = -sine_wave
 
-    # Compute weights
-    print("Computing regular, forward and backward connectivity...")
+# Compute weights
+print("Computing regular, forward and backward connectivity...")
 
-    regular_connectivity, forward_connectivity, backward_connectivity = \
-        compute_connectivity_matrices(num_pops, pop, forward_cont,
-                                      backward_cont)
+bkp_file = "bkp/connectivity.p"
 
-    regular_connectivity *= relative_excitation#excitation xxx
-    forward_connectivity *= cont_forth
-    backward_connectivity *= cont_back
-    inhibition *= excitation * 0.5 # xxx TODO try 0.3 next
+os.makedirs(os.path.dirname(bkp_file), exist_ok=True)
 
-    weights_without_inhibition = \
-        regular_connectivity \
-        + forward_connectivity \
-        + backward_connectivity
+if not os.path.exists(bkp_file):
 
-    # Compute noise
-    print("Calculating uncorrelated Gaussian noise...")
+    pickle.dump( compute_connectivity_matrices(num_pops, pop, forward_cont,
+                                  backward_cont), open(bkp_file, "wb"))
 
+else:
+    print("Loading connectivity from pickle file...")
+    connectivities = pickle.load(open(bkp_file, "rb"))
+
+# regular_connectivity, forward_connectivity, backward_connectivity = \
+#     compute_connectivity_matrices(num_pops, pop, forward_cont,
+#                                   backward_cont)
+regular_connectivity, forward_connectivity, backward_connectivity = connectivities
+
+regular_connectivity *= excitation
+forward_connectivity *= cont_forth
+backward_connectivity *= cont_back
+inhibition *= excitation # * 0.5 # xxx TODO try 0.3 next
+
+weights_without_inhibition = \
+    regular_connectivity \
+    + forward_connectivity \
+    + backward_connectivity
+
+# Compute noise
+print("Calculating uncorrelated Gaussian noise...")
+
+for pop in range(num_pops):
+    noise[pop] = \
+        np.random.normal(
+            loc=0,
+            scale=(noise_var * neurons_per_pop[pop]) ** 0.5,
+            size=num_iter) \
+        / neurons_per_pop[pop] * param_noise
+
+# Initialize firing rates
+firing_rates[neurons_encoding[first_memory]] = init_rate
+
+# Initialize current
+c_ini = init_rate ** (1 / gain_exp) - threshold
+current[neurons_encoding[first_memory]] = c_ini
+
+# Compute neuron dynamics
+print("Computing dynamics at each time step...")
+
+for t in tqdm(range(num_iter)):
+
+    # Update current
     for pop in range(num_pops):
-        noise[pop] = \
-            np.random.normal(
-                loc=0,
-                scale=(noise_var * neurons_per_pop[pop]) ** 0.5,
-                size=num_iter) #\ xxx
-            #/ neurons_per_pop[pop] * param_noise xxx
+        # Compute weights
+        weights = (weights_without_inhibition[pop, :]
+                   + inhibition[t]) #/ num_neurons
 
-    # Initialize firing rates
-    firing_rates[neurons_encoding[first_memory]] = init_rate
+        # Compute input     CHANGE neur to neurons_per_pop[:]
+        input_v = np.sum(weights[:] * (neurons_per_pop[:]/num_neurons) *
+                         firing_rates[:])
 
-    # Initialize current
-    c_ini = init_rate ** (1 / gain_exp) - threshold
-    current[neurons_encoding[first_memory]] = c_ini
+        current[pop] += time_param * (
+                -current[pop] + input_v
+                + noise[pop, t])
 
-    # Compute neuron dynamics
-    print("Computing dynamics at each time step...")
+        currents[pop, t] = current[pop]
 
-    for t in tqdm(range(num_iter)):
+    # Update firing rates
+    firing_rates[:] = 0
+    cond = (current + threshold) > 0
+    firing_rates[cond] \
+        = (current[cond] * param_current + threshold) ** gain_exp
 
-        # Update current
-        for pop in range(num_pops):
-            # Compute weights
-            weights = (weights_without_inhibition[pop, :]
-                       + inhibition[t]) #/ num_neurons xxx
+    for p in range(num_memories):
+        fr = firing_rates[neurons_encoding[p]]
+        n_corresponding = neurons_per_pop[
+            neurons_encoding[p]]
 
-            # Compute input     CHANGE neur to neurons_per_pop[:] xxx
-            input_v = np.sum(weights[:] * (neurons_per_pop[:]/num_neurons) *
-                             firing_rates[:])
+        average_firing_rates_per_memory[p, t] = \
+            np.average(fr, weights=n_corresponding)
 
-            current[pop] += time_param * (
-                    -current[pop] + input_v
-                    + noise[pop, t])
+        c_mu = current[neurons_encoding[p]]
 
-            currents[pop, t] = current[pop]
+        currents_memory[p, t] = np.average(c_mu, weights=n_corresponding)
 
-        # Update firing rates
-        firing_rates[:] = 0
-        cond = (current + threshold) > 0
-        firing_rates[cond] \
-            = (current[cond] * param_current + threshold) ** gain_exp
+# Plots
+print("Plotting...")
+# plot.currents(currents, dt=t_step,
+#               type_="population", fig_num=0)
+# plot.currents(currents_memory, dt=t_step,
+#               type_="memory", fig_num=1)
 
-        for p in range(num_memories):
-            fr = firing_rates[neurons_encoding[p]]
-            n_corresponding = neurons_per_pop[
-                neurons_encoding[p]]
+plot.firing_rates(average_firing_rates_per_memory,
+                  dt=t_step)
+plot.attractors(average_firing_rates_per_memory,
+                dt=t_step)
 
-            average_firing_rates_per_memory[p, t] = \
-                np.average(fr, weights=n_corresponding)
+# plot.sine_wave(sine_wave, dt=t_step)
+# plot.inhibition(inhibition, dt=t_step)
 
-            c_mu = current[neurons_encoding[p]]
+# plot.weights(weights_without_inhibition,
+#              type_="no_inhibition", fig_num=0)
+# plot.weights(regular_connectivity,
+#              type_="regular", fig_num=1)
+# plot.weights(forward_connectivity,
+#              type_="forward", fig_num=2)
+# plot.weights(backward_connectivity,
+#              type_="backward", fig_num=3)
 
-            currents_memory[p, t] = np.average(c_mu, weights=n_corresponding)
+# plot.noise(noise, dt=t_step)
 
-    # Plots
-    print("Plotting...")
-    plot.currents(currents, dt=t_step,
-                  type_="population", fig_num=0)
-    plot.currents(currents_memory, dt=t_step,
-                  type_="memory", fig_num=1)
+print("Done!")
 
-    plot.firing_rates(average_firing_rates_per_memory,
-                      dt=t_step)
-    plot.attractors(average_firing_rates_per_memory,
-                    dt=t_step)
-
-    plot.sine_wave(sine_wave, dt=t_step)
-    plot.inhibition(inhibition, dt=t_step)
-
-    plot.weights(weights_without_inhibition,
-                 type_="no_inhibition", fig_num=0)
-    plot.weights(regular_connectivity,
-                 type_="regular", fig_num=1)
-    plot.weights(forward_connectivity,
-                 type_="forward", fig_num=2)
-    plot.weights(backward_connectivity,
-                 type_="backward", fig_num=3)
-
-    plot.noise(noise, dt=t_step)
-
-    print("Done!")
-
-
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     main()
