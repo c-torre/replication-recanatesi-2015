@@ -204,8 +204,8 @@ def main():
         connectivities
 
     regular_connectivity *= excitation / num_neurons
-    forward_connectivity *= cont_forth
-    backward_connectivity *= cont_back
+    forward_connectivity *= cont_forth / num_neurons
+    backward_connectivity *= cont_back / num_neurons
     inhibition *= excitation / num_neurons
 
     weights_without_inhibition = \
