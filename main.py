@@ -26,6 +26,7 @@ from tqdm import tqdm
 
 import tools.plots as plot
 import tools.sine_wave
+import tools.peak_detector
 
 FIG_DIR = "fig"
 os.makedirs(FIG_DIR, exist_ok=True)
@@ -55,7 +56,7 @@ phase_shift = 0.75
 cont_forth = 1500
 cont_back = 400
 # Time
-t_tot = 5.0  # 14
+t_tot = 14.0  # 14
 t_step = 0.001
 # Noise
 noise_var = 65
@@ -64,7 +65,10 @@ init_rate = 1
 first_memory = 7
 # Replication parameters
 param_noise = 1000
+# 10 we see saw peaks and bubblesand good transitions
+# print(param_noise)
 param_inhibition = 1
+# print(param_inhibition)
 param_current = 1  # 4.75
 
 
@@ -120,6 +124,17 @@ def compute_connectivity_matrices(num_pops, pop, forward_cont,
         backward_connectivity[i, :] = backward
 
     return regular_connectivity, forward_connectivity, backward_connectivity
+
+
+# xxx to remove
+class Tester:
+    pass
+
+
+tester = Tester()
+
+
+# xxx
 
 
 def main():
@@ -232,45 +247,57 @@ def main():
     c_ini = init_rate ** (1 / gain_exp) - threshold
     current[neurons_encoding[first_memory]] = c_ini
 
-    # Compute neuron dynamics
-    print("Computing dynamics at each time step...")
+    bkp_file = "bkp/firing_rates.p"
 
-    for t in tqdm(range(num_iter)):
+    os.makedirs(os.path.dirname(bkp_file), exist_ok=True)
 
-        # Update current
-        for pop in range(num_pops):
-            # Compute weights
-            weights = (weights_without_inhibition[pop, :]
-                       + inhibition[t])  # / num_neurons
+    if os.path.exists(bkp_file):
+        # Compute neuron dynamics
+        print("Computing dynamics at each time step...")
 
-            # Compute input     CHANGE neur to neurons_per_pop[:]
-            sv = (neurons_per_pop[:] / num_neurons)  # DID NOT CHANGE
-            input_v = np.sum(weights[:] * sv * firing_rates[:])
+        for t in tqdm(range(num_iter)):
 
-            current[pop] += time_param * (
-                    -current[pop] + input_v
-                    + noise[pop, t])
+            # Update current
+            for pop in range(num_pops):
+                # Compute weights
+                weights = (weights_without_inhibition[pop, :]
+                           + inhibition[t])  # / num_neurons
 
-            # Backup for the plot
-            currents[pop, t] = current[pop]
+                # Compute input     CHANGE neur to neurons_per_pop[:]
+                sv = (neurons_per_pop[:] / num_neurons)  # DID NOT CHANGE
+                input_v = np.sum(weights[:] * sv * firing_rates[:])
 
-        # Update firing rates
-        firing_rates[:] = 0
-        cond = (current + threshold) > 0
-        firing_rates[cond] \
-            = (current[cond] * param_current + threshold) ** gain_exp
+                current[pop] += time_param * (
+                        -current[pop] + input_v
+                        + noise[pop, t])
 
-        for p in range(num_memories):
-            fr = firing_rates[neurons_encoding[p]]
-            n_corresponding = neurons_per_pop[
-                neurons_encoding[p]]
+                # Backup for the plot
+                currents[pop, t] = current[pop]
 
-            average_firing_rates_per_memory[p, t] = \
-                np.average(fr, weights=n_corresponding)
+            # Update firing rates
+            firing_rates[:] = 0
+            cond = (current + threshold) > 0
+            firing_rates[cond] \
+                = (current[cond] * param_current + threshold) ** gain_exp
 
-            c_mu = current[neurons_encoding[p]]
+            for p in range(num_memories):
+                fr = firing_rates[neurons_encoding[p]]
+                n_corresponding = neurons_per_pop[
+                    neurons_encoding[p]]
 
-            currents_memory[p, t] = np.average(c_mu, weights=n_corresponding)
+                average_firing_rates_per_memory[p, t] = \
+                    np.average(fr, weights=n_corresponding)
+
+                c_mu = current[neurons_encoding[p]]
+
+                currents_memory[p, t] = np.average(c_mu,
+                                                   weights=n_corresponding)
+
+        pickle.dump(average_firing_rates_per_memory, open(bkp_file, "wb"))
+
+    else:
+        print("Loading connectivity from pickle file...")
+        average_firing_rates_per_memory = pickle.load(open(bkp_file, "rb"))
 
     # Plots
     print("Plotting...")

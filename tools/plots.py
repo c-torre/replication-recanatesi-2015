@@ -235,3 +235,8 @@ def noise(noise_values, t_tot, dt):
     plt.tight_layout()
 
     plt.savefig(os.path.join(FIG_DIR, "noise.pdf"))
+
+
+def p_recall_given_size():
+    x = encoding
+    y = p_recall
