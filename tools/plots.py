@@ -221,7 +221,7 @@ def noise(noise_values, t_tot, dt):
 
     fig, ax = plt.subplots()
 
-    n_time_steps = int(t_tot/dt)
+    n_time_steps = int(t_tot / dt)
 
     x = np.arange(n_time_steps, dtype=float) * dt
 
@@ -237,6 +237,12 @@ def noise(noise_values, t_tot, dt):
     plt.savefig(os.path.join(FIG_DIR, "noise.pdf"))
 
 
-def p_recall_given_size():
-    x = encoding
-    y = p_recall
+def probability_recall_given_size(neurons_encoding, probability_recall):
+    x = sorted([np.amax(memory) for memory in neurons_encoding])
+
+    fig, ax = plt.subplots()
+
+    plt.tight_layout()
+    ax.scatter(x, probability_recall)
+
+    plt.savefig(os.path.join(FIG_DIR, "probability_recall_memory_size.pdf"))

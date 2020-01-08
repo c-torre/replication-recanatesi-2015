@@ -26,7 +26,7 @@ from tqdm import tqdm
 
 import tools.plots as plot
 import tools.sine_wave
-import tools.peak_detector
+import tools.recall_performance
 
 FIG_DIR = "fig"
 os.makedirs(FIG_DIR, exist_ok=True)
@@ -37,15 +37,15 @@ np.random.seed(123)
 
 # === Parameters ===
 # Architecture
-num_neurons = 100000
+num_neurons = 10 ** 5
 num_memories = 16
 # Activation
 t_decay = 0.01
 # Gain
-threshold = 0
+gain_threshold = 0
 gain_exp = 2 / 5
 # Hebbian rule
-excitation = 13000
+excitation = 13_000
 sparsity = 0.1
 # Inhibition
 sin_min = 0.7
@@ -63,9 +63,11 @@ noise_var = 65
 # Initialization
 init_rate = 1
 first_memory = 7
+# Recall
+recall_threshold = 15
 # Replication parameters
 param_noise = 1000
-# 10 we see saw peaks and bubblesand good transitions
+# 10 we see saw peaks and bubbles and good transitions
 # print(param_noise)
 param_inhibition = 1
 # print(param_inhibition)
@@ -155,8 +157,9 @@ def main():
 
     num_pops = len(pop)
 
-    neurons_encoding = [(pop[:, mu] == 1).nonzero()[0] for mu in
-                        range(num_memories)]
+    neurons_encoding_mem = [(pop[:, mu] == 1).nonzero()[0] for mu in
+                            range(num_memories)]
+    tester.neurons_encoding = neurons_encoding_mem  # xxx
 
     # === Other pre-computations ===
     num_iter = int(t_tot / t_step)
@@ -241,17 +244,17 @@ def main():
             / neurons_per_pop[pop] * param_noise  # MOD ADDED BACK
 
     # Initialize firing rates
-    firing_rates[neurons_encoding[first_memory]] = init_rate
+    firing_rates[neurons_encoding_mem[first_memory]] = init_rate
 
     # Initialize current
-    c_ini = init_rate ** (1 / gain_exp) - threshold
-    current[neurons_encoding[first_memory]] = c_ini
+    c_ini = init_rate ** (1 / gain_exp) - gain_threshold
+    current[neurons_encoding_mem[first_memory]] = c_ini
 
-    bkp_file = "bkp/firing_rates.p"
+    bkp_file = "bkp/average_firing_rates_per_memory.p"
 
     os.makedirs(os.path.dirname(bkp_file), exist_ok=True)
 
-    if os.path.exists(bkp_file):
+    if not os.path.exists(bkp_file):
         # Compute neuron dynamics
         print("Computing dynamics at each time step...")
 
@@ -276,19 +279,19 @@ def main():
 
             # Update firing rates
             firing_rates[:] = 0
-            cond = (current + threshold) > 0
+            cond = (current + gain_threshold) > 0
             firing_rates[cond] \
-                = (current[cond] * param_current + threshold) ** gain_exp
+                = (current[cond] * param_current + gain_threshold) ** gain_exp
 
             for p in range(num_memories):
-                fr = firing_rates[neurons_encoding[p]]
+                fr = firing_rates[neurons_encoding_mem[p]]
                 n_corresponding = neurons_per_pop[
-                    neurons_encoding[p]]
+                    neurons_encoding_mem[p]]
 
                 average_firing_rates_per_memory[p, t] = \
                     np.average(fr, weights=n_corresponding)
 
-                c_mu = current[neurons_encoding[p]]
+                c_mu = current[neurons_encoding_mem[p]]
 
                 currents_memory[p, t] = np.average(c_mu,
                                                    weights=n_corresponding)
@@ -298,6 +301,13 @@ def main():
     else:
         print("Loading connectivity from pickle file...")
         average_firing_rates_per_memory = pickle.load(open(bkp_file, "rb"))
+
+    # Recall performance
+    counts_memory_recalls = tools.recall_performance.count_memory_recalls(
+        average_firing_rates_per_memory, recall_threshold)
+    probability_recall_memories = \
+        tools.recall_performance.get_probability_recall(counts_memory_recalls,
+                                                        t_tot)
 
     # Plots
     print("Plotting...")
@@ -310,6 +320,20 @@ def main():
                       dt=t_step)
     plot.attractors(average_firing_rates_per_memory,
                     dt=t_step)
+
+    # xxx test
+
+    tester.p_rs = probability_recall_memories
+    tester.pop = pop
+    tester.neurons_per_pop = neurons_per_pop
+    tester.memory_patterns = memory_patterns
+    tester.memory_intersections = \
+        tools.recall_performance.get_memory_intersections(memory_patterns)
+    tester.memory_intersections_sizes = \
+        tools.recall_performance.get_memory_intersection_sizes(
+            tester.memory_intersections)
+
+    # xxx
 
     # plot.sine_wave(sine_wave, dt=t_step)
     # plot.inhibition(inhibition, dt=t_step)
@@ -324,6 +348,9 @@ def main():
     #              type_="backward", fig_num=3)
 
     # plot.noise(noise, dt=t_step, t_tot=t_tot)
+
+    plot.probability_recall_given_size(neurons_encoding_mem,
+                                       probability_recall_memories)
 
     print("Done!")
 
