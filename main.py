@@ -37,12 +37,12 @@ np.random.seed(123)
 
 # === Parameters ===
 # Architecture
-num_neurons = 10 ** 5
-num_memories = 16
+NUM_NEURONS = 10 ** 5
+NUM_MEMORIES = 16
 # Activation
-t_decay = 0.01
+T_DECAY = 0.01
 # Gain
-gain_threshold = 0
+GAIN_THRESHOLD = 0
 gain_exp = 2 / 5
 # Hebbian rule
 excitation = 13_000
@@ -66,7 +66,7 @@ first_memory = 7
 # Recall
 recall_threshold = 15
 # Replication parameters
-param_noise = 1000
+param_noise = 300
 # 10 we see saw peaks and bubbles and good transitions
 # print(param_noise)
 param_inhibition = 1
@@ -85,37 +85,25 @@ def inside_loop_connectivity_matrices(arg):
     backward = np.zeros(num_pops)
 
     for j in range(num_pops):
-        regular[j] = np.sum(
-            (pop[i, :] - sparsity)
-            * (pop[j, :] - sparsity)
-        )
+        regular[j] = np.sum((pop[i, :] - sparsity) * (pop[j, :] - sparsity))
 
-        forward[j] = np.sum(
-            pop[i, forward_cont] *
-            pop[j, forward_cont + 1]
-        )
+        forward[j] = np.sum(pop[i, forward_cont] * pop[j, forward_cont + 1])
 
-        backward[j] = np.sum(
-            pop[i, backward_cont] *
-            pop[j, backward_cont - 1]
-        )
+        backward[j] = np.sum(pop[i, backward_cont] * pop[j, backward_cont - 1])
 
     return regular, forward, backward
 
-
-def compute_connectivity_matrices(num_pops, pop, forward_cont,
-                                  backward_cont):
+def compute_connectivity_matrices(num_pops, pop, forward_cont, backward_cont):
     regular_connectivity = np.zeros((num_pops, num_pops))
     forward_connectivity = np.zeros((num_pops, num_pops))
     backward_connectivity = np.zeros((num_pops, num_pops))
 
-    args = [(i, num_pops, pop, backward_cont, forward_cont)
-            for i in range(num_pops)]
+    args = [(i, num_pops, pop, backward_cont, forward_cont) for i in range(num_pops)]
 
     with Pool(cpu_count()) as pool:
         r = list(
-            tqdm(pool.imap(inside_loop_connectivity_matrices, args),
-                 total=len(args)))
+            tqdm(pool.imap(inside_loop_connectivity_matrices, args), total=len(args))
+        )
         pool.close()
         pool.join()
 
@@ -129,49 +117,56 @@ def compute_connectivity_matrices(num_pops, pop, forward_cont,
 
 
 # xxx to remove
-class Tester:
-    pass
+# class Tester:
+#     pass
 
 
-tester = Tester()
+# tester = Tester()
 
 
 # xxx
 
 
 def main():
-    print("<[Re] Recanatesi (2015)>  Copyright (C) <2019>\n"
-          "<de la Torre-Ortiz C, Nioche A>\n"
-          "This program comes with ABSOLUTELY NO WARRANTY.\n"
-          "This is free software, and you are welcome to redistribute it\n"
-          "under certain conditions; see the 'LICENSE' file for details.\n")
+    """ Licensing and main execution """
+
+    print(
+        "<[Re] Recanatesi (2015)>  Copyright (C) <2019>\n"
+        "<de la Torre-Ortiz C, Nioche A>\n"
+        "This program comes with ABSOLUTELY NO WARRANTY.\n"
+        "This is free software, and you are welcome to redistribute it\n"
+        "under certain conditions; see the 'LICENSE' file for details.\n"
+    )
 
     # Compute memory patterns
     print("Computing memory patterns and neuron populations...")
-    memory_patterns = np.random.choice([0, 1], p=[1 - sparsity, sparsity],
-                                       size=(num_neurons, num_memories))
+    memory_patterns = np.random.choice(
+        [0, 1], p=[1 - sparsity, sparsity], size=(NUM_NEURONS, NUM_MEMORIES)
+    )
 
     # Compute populations
-    pop, neurons_per_pop = np.unique([tuple(i) for i in memory_patterns],
-                                     axis=0, return_counts=True)
+    pop, neurons_per_pop = np.unique(
+        [tuple(i) for i in memory_patterns], axis=0, return_counts=True
+    )
 
     num_pops = len(pop)
 
-    neurons_encoding_mem = [(pop[:, mu] == 1).nonzero()[0] for mu in
-                            range(num_memories)]
-    tester.neurons_encoding = neurons_encoding_mem  # xxx
+    neurons_encoding_mem = [
+        (pop[:, mu] == 1).nonzero()[0] for mu in range(NUM_MEMORIES)
+    ]
+    # tester.neurons_encoding = neurons_encoding_mem  # xxx
 
     # === Other pre-computations ===
     num_iter = int(t_tot / t_step)
-    # relative_excitation = excitation / num_neurons
-    time_param = t_step / t_decay
+    # relative_excitation = excitation / NUM_NEURONS
+    time_param = t_step / T_DECAY
 
     # Inhibition
     sine_wave = np.zeros(num_iter)
 
     # Connectivity
-    forward_cont = np.arange(num_memories - 1)
-    backward_cont = np.arange(1, num_memories)
+    forward_cont = np.arange(NUM_MEMORIES - 1)
+    backward_cont = np.arange(1, NUM_MEMORIES)
 
     # Noise
     noise = np.zeros((num_pops, num_iter))
@@ -179,22 +174,22 @@ def main():
     # Neuron dynamics
     firing_rates = np.zeros([num_pops])
     current = np.zeros([num_pops])
-    average_firing_rates_per_memory = np.zeros((num_memories, num_iter))
+    average_firing_rates_per_memory = np.zeros((NUM_MEMORIES, num_iter))
     currents = np.zeros((num_pops, num_iter))
-    currents_memory = np.zeros((num_memories, num_iter))
+    currents_memory = np.zeros((NUM_MEMORIES, num_iter))
     # ==============================
 
     # Compute sine wave
     print("Calculating inhibition values...")
 
-    for t in range(num_iter):
-        sine_wave[t] = tools.sine_wave.sinusoid(
+    for time in range(num_iter):
+        sine_wave[time] = tools.sine_wave.sinusoid(
             min_=sin_min,
             max_=sin_max,
             period=t_oscillation,
-            t=t,
+            t=time,
             phase_shift=phase_shift * t_oscillation,
-            dt=t_step
+            dt=t_step,
         )
 
     inhibition = -sine_wave * param_inhibition
@@ -207,9 +202,9 @@ def main():
     os.makedirs(os.path.dirname(bkp_file), exist_ok=True)
 
     if not os.path.exists(bkp_file):
-        connectivities = \
-            compute_connectivity_matrices(num_pops, pop,
-                                          forward_cont, backward_cont)
+        connectivities = compute_connectivity_matrices(
+            num_pops, pop, forward_cont, backward_cont
+        )
         pickle.dump(connectivities, open(bkp_file, "wb"))
 
     else:
@@ -219,35 +214,34 @@ def main():
     # regular_connectivity, forward_connectivity, backward_connectivity = \
     #     compute_connectivity_matrices(num_pops, pop, forward_cont,
     #                                   backward_cont)
-    regular_connectivity, forward_connectivity, backward_connectivity = \
-        connectivities
+    regular_connectivity, forward_connectivity, backward_connectivity = connectivities
 
-    regular_connectivity *= excitation  # MOD REMOVED / num_neurons
+    regular_connectivity *= excitation  # MOD REMOVED / NUM_NEURONS
     forward_connectivity *= cont_forth
     backward_connectivity *= cont_back
-    inhibition *= excitation  # MOD REMOVED / num_neurons
+    inhibition *= excitation  # MOD REMOVED / NUM_NEURONS
 
-    weights_without_inhibition = \
-        regular_connectivity \
-        + forward_connectivity \
-        + backward_connectivity
+    weights_without_inhibition = (
+        regular_connectivity + forward_connectivity + backward_connectivity
+    )
 
     # Compute noise
     print("Calculating uncorrelated Gaussian noise...")
 
     for pop in range(num_pops):
-        noise[pop] = \
+        noise[pop] = (
             np.random.normal(
-                loc=0,
-                scale=(noise_var * neurons_per_pop[pop]) ** 0.5,
-                size=num_iter) \
-            / neurons_per_pop[pop] * param_noise  # MOD ADDED BACK
+                loc=0, scale=(noise_var * neurons_per_pop[pop]) ** 0.5, size=num_iter
+            )
+            / neurons_per_pop[pop]
+            * param_noise
+        )  # MOD ADDED BACK
 
     # Initialize firing rates
     firing_rates[neurons_encoding_mem[first_memory]] = init_rate
 
     # Initialize current
-    c_ini = init_rate ** (1 / gain_exp) - gain_threshold
+    c_ini = init_rate ** (1 / gain_exp) - GAIN_THRESHOLD
     current[neurons_encoding_mem[first_memory]] = c_ini
 
     bkp_file = "bkp/average_firing_rates_per_memory.p"
@@ -258,43 +252,42 @@ def main():
         # Compute neuron dynamics
         print("Computing dynamics at each time step...")
 
-        for t in tqdm(range(num_iter)):
+        for time in tqdm(range(num_iter)):
 
             # Update current
             for pop in range(num_pops):
                 # Compute weights
-                weights = (weights_without_inhibition[pop, :]
-                           + inhibition[t])  # / num_neurons
+                weights = (
+                    weights_without_inhibition[pop, :] + inhibition[time]
+                )  # / NUM_NEURONS
 
                 # Compute input     CHANGE neur to neurons_per_pop[:]
-                sv = (neurons_per_pop[:] / num_neurons)  # DID NOT CHANGE
+                sv = neurons_per_pop[:] / NUM_NEURONS  # DID NOT CHANGE
                 input_v = np.sum(weights[:] * sv * firing_rates[:])
 
-                current[pop] += time_param * (
-                        -current[pop] + input_v
-                        + noise[pop, t])
+                current[pop] += time_param * (-current[pop] + input_v + noise[pop, time])
 
                 # Backup for the plot
-                currents[pop, t] = current[pop]
+                currents[pop, time] = current[pop]
 
             # Update firing rates
             firing_rates[:] = 0
-            cond = (current + gain_threshold) > 0
-            firing_rates[cond] \
-                = (current[cond] * param_current + gain_threshold) ** gain_exp
+            cond = (current + GAIN_THRESHOLD) > 0
+            firing_rates[cond] = (
+                current[cond] * param_current + GAIN_THRESHOLD
+            ) ** gain_exp
 
-            for p in range(num_memories):
+            for p in range(NUM_MEMORIES):
                 fr = firing_rates[neurons_encoding_mem[p]]
-                n_corresponding = neurons_per_pop[
-                    neurons_encoding_mem[p]]
+                n_corresponding = neurons_per_pop[neurons_encoding_mem[p]]
 
-                average_firing_rates_per_memory[p, t] = \
-                    np.average(fr, weights=n_corresponding)
+                average_firing_rates_per_memory[p, time] = np.average(
+                    fr, weights=n_corresponding
+                )
 
                 c_mu = current[neurons_encoding_mem[p]]
 
-                currents_memory[p, t] = np.average(c_mu,
-                                                   weights=n_corresponding)
+                currents_memory[p, time] = np.average(c_mu, weights=n_corresponding)
 
         pickle.dump(average_firing_rates_per_memory, open(bkp_file, "wb"))
 
@@ -304,10 +297,11 @@ def main():
 
     # Recall performance
     counts_memory_recalls = tools.recall_performance.count_memory_recalls(
-        average_firing_rates_per_memory, recall_threshold)
-    probability_recall_memories = \
-        tools.recall_performance.get_probability_recall(counts_memory_recalls,
-                                                        t_tot)
+        average_firing_rates_per_memory, recall_threshold
+    )
+    probability_recall_memories = tools.recall_performance.get_probability_recall(
+        counts_memory_recalls, t_tot
+    )
 
     # Plots
     print("Plotting...")
@@ -316,22 +310,20 @@ def main():
     # plot.currents(currents_memory, dt=t_step,
     #               type_="memory", fig_num=1)
 
-    plot.firing_rates(average_firing_rates_per_memory,
-                      dt=t_step)
-    plot.attractors(average_firing_rates_per_memory,
-                    dt=t_step)
+    plot.firing_rates(average_firing_rates_per_memory, dt=t_step)
+    plot.attractors(average_firing_rates_per_memory, dt=t_step)
 
     # xxx test
 
-    tester.p_rs = probability_recall_memories
-    tester.pop = pop
-    tester.neurons_per_pop = neurons_per_pop
-    tester.memory_patterns = memory_patterns
-    tester.memory_intersections = \
-        tools.recall_performance.get_memory_intersections(memory_patterns)
-    tester.memory_intersections_sizes = \
-        tools.recall_performance.get_memory_intersection_sizes(
-            tester.memory_intersections)
+    # tester.p_rs = probability_recall_memories
+    # tester.pop = pop
+    # tester.neurons_per_pop = neurons_per_pop
+    # tester.memory_patterns = memory_patterns
+    # tester.memory_intersections = \
+    #     tools.recall_performance.get_memory_intersections(memory_patterns)
+    # tester.memory_intersections_sizes = \
+    #     tools.recall_performance.get_memory_intersection_sizes(
+    #         tester.memory_intersections)
 
     # xxx
 
@@ -349,8 +341,9 @@ def main():
 
     # plot.noise(noise, dt=t_step, t_tot=t_tot)
 
-    plot.probability_recall_given_size(neurons_encoding_mem,
-                                       probability_recall_memories)
+    plot.probability_recall_given_size(
+        neurons_encoding_mem, probability_recall_memories
+    )
 
     print("Done!")
 

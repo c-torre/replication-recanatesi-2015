@@ -19,7 +19,7 @@ FIG_DIR = "fig"
 os.makedirs(FIG_DIR, exist_ok=True)
 
 
-def currents(current_values, type_, fig_num, dt=1.):
+def currents(current_values, type_, fig_num, dt=1.0):
     """
     Plot current values.
 
@@ -32,10 +32,12 @@ def currents(current_values, type_, fig_num, dt=1.):
     fig, ax = plt.subplots()
 
     titles = {
-        "population": {"title": "Population Currents",
-                       "filename": "currents_populations"},
-        "memory": {"title": "Memory Currents",
-                   "filename": "currents_memory"}}
+        "population": {
+            "title": "Population Currents",
+            "filename": "currents_populations",
+        },
+        "memory": {"title": "Memory Currents", "filename": "currents_memory"},
+    }
 
     n_iteration = current_values.shape[1]
 
@@ -47,16 +49,21 @@ def currents(current_values, type_, fig_num, dt=1.):
     ax.set_xlabel("Time (cycles)")
     ax.set_ylabel("Average current")
     ax.set_title(titles[type_]["title"])
-    ax.text(-0.2, 1.2, string.ascii_uppercase[fig_num],
-            transform=ax.transAxes,
-            size=20, weight='bold')
+    ax.text(
+        -0.2,
+        1.2,
+        string.ascii_uppercase[fig_num],
+        transform=ax.transAxes,
+        size=20,
+        weight="bold",
+    )
 
     plt.tight_layout()
 
     plt.savefig(os.path.join(FIG_DIR, titles[type_]["filename"] + ".pdf"))
 
 
-def firing_rates(f_rates, dt=1.):
+def firing_rates(f_rates, dt=1.0):
     """
     Plot firing rates.
 
@@ -77,15 +84,20 @@ def firing_rates(f_rates, dt=1.):
     ax.set_xlabel("Time (cycles)")
     ax.set_ylabel("Average firing rate")
     ax.set_title("Firing Rates")
-    ax.text(-0.2, 1.2, string.ascii_uppercase[0],
-            transform=ax.transAxes,
-            size=20, weight='bold')
+    ax.text(
+        -0.2,
+        1.2,
+        string.ascii_uppercase[0],
+        transform=ax.transAxes,
+        size=20,
+        weight="bold",
+    )
     plt.tight_layout()
 
     plt.savefig(os.path.join(FIG_DIR, "firing_rates.pdf"))
 
 
-def attractors(f_rates, dt=1.):
+def attractors(f_rates, dt=1.0):
     """
     Plot attractor number active per time cycle.
 
@@ -97,27 +109,33 @@ def attractors(f_rates, dt=1.):
 
     n_memory, n_iteration = f_rates.shape
 
-    im = ax.imshow(f_rates, cmap="jet",
-                   extent=[0, n_iteration * dt, n_memory - 0.5, -0.5])
+    im = ax.imshow(
+        f_rates, cmap="jet", extent=[0, n_iteration * dt, n_memory - 0.5, -0.5]
+    )
 
     ax.set_xlabel("Time (cycles)")
     ax.set_ylabel("Attractor number")
 
     fig.colorbar(im, ax=ax)
 
-    ax.set_aspect(aspect='auto')
+    ax.set_aspect(aspect="auto")
     ax.yaxis.set_major_locator(MaxNLocator(integer=True))
     ax.set_title("Attractors")
-    ax.text(-0.2, 1.2, string.ascii_uppercase[1],
-            transform=ax.transAxes,
-            size=20, weight='bold')
+    ax.text(
+        -0.2,
+        1.2,
+        string.ascii_uppercase[1],
+        transform=ax.transAxes,
+        size=20,
+        weight="bold",
+    )
 
     plt.tight_layout()
 
     plt.savefig(os.path.join(FIG_DIR, "attractors.pdf"))
 
 
-def sine_wave(sine_wave_values, dt=1.):
+def sine_wave(sine_wave_values, dt=1.0):
     """
     Plot the sine wave that drives inhibition.
 
@@ -136,16 +154,21 @@ def sine_wave(sine_wave_values, dt=1.):
     ax.set_title("Sine wave")
     ax.set_xlabel("Time (cycles)")
     ax.set_ylabel(r"$\phi$")
-    ax.text(-0.2, 1.2, string.ascii_uppercase[0],
-            transform=ax.transAxes,
-            size=20, weight='bold')
+    ax.text(
+        -0.2,
+        1.2,
+        string.ascii_uppercase[0],
+        transform=ax.transAxes,
+        size=20,
+        weight="bold",
+    )
 
     plt.tight_layout()
 
     plt.savefig(os.path.join(FIG_DIR, "sine_wave.pdf"))
 
 
-def inhibition(inhibition_values, dt=1.):
+def inhibition(inhibition_values, dt=1.0):
     """
     Plot the inhibition wave.
 
@@ -164,9 +187,14 @@ def inhibition(inhibition_values, dt=1.):
     ax.set_xlabel("Time (cycles)")
     ax.set_ylabel("Inhibition")
     ax.set_title("Inhibition")
-    ax.text(-0.2, 1.2, string.ascii_uppercase[1],
-            transform=ax.transAxes,
-            size=20, weight='bold')
+    ax.text(
+        -0.2,
+        1.2,
+        string.ascii_uppercase[1],
+        transform=ax.transAxes,
+        size=20,
+        weight="bold",
+    )
 
     plt.tight_layout()
 
@@ -183,23 +211,28 @@ def weights(weights_array, type_, fig_num):
     """
 
     titles = {
-        "no_inhibition": {"title": "Weights Without Inhibition",
-                          "filename": "weights_without_inhibition"},
-        "regular": {"title": "Regular Weights",
-                    "filename": "weights_regular"},
-        "forward": {"title": "Forward Weights",
-                    "filename": "weights_forward"},
-        "backward": {"title": "Backward Weights",
-                     "filename": "weights_backward"}}
+        "no_inhibition": {
+            "title": "Weights Without Inhibition",
+            "filename": "weights_without_inhibition",
+        },
+        "regular": {"title": "Regular Weights", "filename": "weights_regular"},
+        "forward": {"title": "Forward Weights", "filename": "weights_forward"},
+        "backward": {"title": "Backward Weights", "filename": "weights_backward"},
+    }
 
     fig, ax = plt.subplots()
 
     ax.set_xlabel(r"Population $i$")
     ax.set_ylabel(r"Population $j$")
     ax.set_title(titles[type_]["title"])
-    ax.text(-0.2, 1.2, string.ascii_uppercase[fig_num],
-            transform=ax.transAxes,
-            size=20, weight='bold')
+    ax.text(
+        -0.2,
+        1.2,
+        string.ascii_uppercase[fig_num],
+        transform=ax.transAxes,
+        size=20,
+        weight="bold",
+    )
 
     im = ax.imshow(weights_array)
 

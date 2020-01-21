@@ -8,7 +8,7 @@ sinusoid: Sine wave function.
 import numpy as np
 
 
-def sinusoid(min_, max_, period, t, phase_shift, dt=1.):
+def sinusoid(min_, max_, period, t, phase_shift, dt=1.0):
     """
     Sine wave function with extra parameters.
 
@@ -24,7 +24,4 @@ def sinusoid(min_, max_, period, t, phase_shift, dt=1.):
     frequency = (1 / period) * dt
     shift = min_ + amplitude
 
-    return \
-        amplitude \
-        * np.sin(2 * np.pi * (t + phase_shift / dt) * frequency) \
-        + shift
+    return amplitude * np.sin(2 * np.pi * (t + phase_shift / dt) * frequency) + shift
