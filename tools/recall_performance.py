@@ -6,8 +6,9 @@ Detects when the firing rate of a memory crosses a recall gain_threshold,
 and is therefore recalled
 """
 
-import numpy as np
 from itertools import combinations
+
+import numpy as np
 
 
 def count_memory_recalls(firing_rates, recall_threshold):
@@ -29,6 +30,15 @@ def count_memory_recalls(firing_rates, recall_threshold):
                 recall_counts[memory_idx] += 1
 
     return recall_counts
+
+
+def get_memory_recalls(recall_threshold, firing_rates, time_step):
+
+    firing_rates_recalls = np.int_(firing_rates > recall_threshold)
+    cycle_indices = np.arange(start=0, end=firing_rates.shape[1], step=1 / time_step)
+    recalls = firing_rates_recalls[:, cycle_indices]
+
+    return recalls
 
 
 def get_probability_recall(recalls_per_memory, t_cycles):
@@ -64,5 +74,39 @@ def get_memory_intersection_sizes(memory_intersections):
         for memory_intersection in memory_intersections.values()
     }
 
-def inter_retrieval_time():
-    
+def check_only_single_recall(binary_recalls):
+    assert len(binary_recalls.shape) == 2
+    array_sum = np.sum(np.sum(binary_recalls))
+    assert array_sum <= binary_recalls.shape[0]
+
+def get_memory_jumps(recalls):
+
+    check_only_single_recall(recalls)
+    # Get a column array of the memory indexes
+    memory_identifier = np.rot90(np.arange(recalls.shape[0]))
+    # Multiply binary array by previous to identify the memories, flatten
+    recalled_memories_time_list = np.sum((recalls * memory_identifier), axis=1)
+    # Substract one element from the previous to get the size of memory jumps
+    memory_jump_sizes = np.diff(recalled_memories_time_list)
+
+    return memory_jump_sizes
+
+
+def get_inter_retrieval_times(memory_jumps):
+    """
+    IRT is the number of iterations that pass before a new memory is recalled.
+    e.g. p1, p1, p1, p5; IRT = 3
+    """
+
+    # There is no jump at the very beginning
+    first_jump_idx = [-1]
+    # Memories jump where difference of recalled memory is not 0; get index
+    where_jumps = np.nonzero(memory_jumps)
+    # Stack "real first jump" to compute diffs correctly
+    where_jumps_probed = np.hstack((first_jump_idx, where_jumps))
+    # Jump after one iteration is IRT=1, not IRT=0
+    where_jumps_probed += 1
+    # Diffs of jump indexes gives iterations until jump == IRT
+    inter_retrieval_times = np.diff(where_jumps_probed)
+
+    return inter_retrieval_times
