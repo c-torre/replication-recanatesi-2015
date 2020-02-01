@@ -2,8 +2,8 @@
 <[Re] Recanatesi (2015). Neural Network Model of Memory Retrieval>
 Copyright (C) <2019>  <de la Torre-Ortiz C, Nioche A>
 
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
+This program is free software: you can redistribute it andtimeor modify
+it unt_stepe terms of the GNU General Public License as published by
 the Free Software Foundation, either version 3 of the License, or
 (at your option) any later version.
 
@@ -56,7 +56,7 @@ PHASE_SHIFT = 0.75
 CONT_FORTH = 1500
 CONT_BACK = 400
 # Time
-T_CYCLES = 14.0  # 14
+T_CYCLES = 8.0  # 14
 T_STEP = 0.001
 # Noise
 NOISE_VAR = 65
@@ -181,9 +181,9 @@ def main():
             min_=SIN_MIN,
             max_=SIN_MAX,
             period=T_OSCILLATION,
-            t=time,
+            time=time,
             phase_shift=PHASE_SHIFT * T_OSCILLATION,
-            dt=T_STEP,
+            t_step=T_STEP,
         )
 
     inhibition = -sine_wave * PARAM_INHIBITION
@@ -191,7 +191,7 @@ def main():
     # Compute weights
     print("Computing regular, forward and backward connectivity...")
 
-    bkp_file = "bkp/connectivity.p"
+    bkp_file = "bkp/connectivities.p"
 
     os.makedirs(os.path.dirname(bkp_file), exist_ok=True)
 
@@ -308,8 +308,8 @@ def main():
     # plot.currents(currents_memory, dt=t_step,
     #               type_="memory", fig_num=1)
 
-    plot.firing_rates(average_firing_rates_per_memory, dt=T_STEP)
-    plot.attractors(average_firing_rates_per_memory, dt=T_STEP)
+    # plot.firing_rates(average_firing_rates_per_memory, t_step=T_STEP)
+    # plot.attractors(average_firing_rates_per_memory, t_step=T_STEP)
 
     # plot.sine_wave(sine_wave, dt=t_step)
     # plot.inhibition(inhibition, dt=t_step)
@@ -325,9 +325,9 @@ def main():
 
     # plot.noise(noise, dt=t_step, t_tot=t_tot)
 
-    plot.probability_recall_given_size(
-        neurons_encoding_mem, probability_recall_memories
-    )
+    # plot.probability_recall_given_size(
+    #     neurons_encoding_mem, probability_recall_memories
+    # )
 
     print("Done!")
 

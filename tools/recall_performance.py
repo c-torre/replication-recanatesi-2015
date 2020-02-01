@@ -46,13 +46,14 @@ def get_probability_recall(recalls_per_memory, t_cycles):
 
 
 def get_memory_intersections(memory_patterns):
-    r = 2
+    subset_size = 2
     memory_combinations_keys = list(
-        combinations(np.arange(memory_patterns.shape[1]), r)
+        combinations(np.arange(memory_patterns.shape[1]), subset_size)
     )
     memory_combinations = list(
         combinations(
-            [memory_patterns[:, p] for p in range(memory_patterns.shape[1])], r
+            [memory_patterns[:, p] for p in range(memory_patterns.shape[1])],
+            subset_size,
         )
     )
 
@@ -74,13 +75,19 @@ def get_memory_intersection_sizes(memory_intersections):
         for memory_intersection in memory_intersections.values()
     }
 
+
 def check_only_single_recall(binary_recalls):
+    """ No more than one memory recalled per cycle """
+
     assert len(binary_recalls.shape) == 2
     array_sum = np.sum(np.sum(binary_recalls))
     assert array_sum <= binary_recalls.shape[0]
 
-def get_memory_jumps(recalls):
 
+def get_memory_jumps(recalls):
+    """ When the recalled memory changes """
+
+    # Sanity check
     check_only_single_recall(recalls)
     # Get a column array of the memory indexes
     memory_identifier = np.rot90(np.arange(recalls.shape[0]))
@@ -106,7 +113,7 @@ def get_inter_retrieval_times(memory_jumps):
     where_jumps_probed = np.hstack((first_jump_idx, where_jumps))
     # Jump after one iteration is IRT=1, not IRT=0
     where_jumps_probed += 1
-    # Diffs of jump indexes gives iterations until jump == IRT
+    # Diffs of jump indexes gives iterations until jump; these are the IRT
     inter_retrieval_times = np.diff(where_jumps_probed)
 
     return inter_retrieval_times
