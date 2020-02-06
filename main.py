@@ -24,7 +24,7 @@ from multiprocessing.pool import Pool
 import numpy as np
 from tqdm import tqdm
 
-import tools.plots as plot
+import generate_seeds
 import tools.recall_performance
 import tools.sine_wave
 
@@ -34,6 +34,7 @@ os.makedirs(FIG_DIR, exist_ok=True)
 
 np.seterr(all="raise")
 
+generate_seeds.generate_seeds()
 
 # === Parameters ===
 # Architecture
@@ -56,7 +57,7 @@ PHASE_SHIFT = 0.75
 CONT_FORTH = 1500
 CONT_BACK = 400
 # Time
-T_CYCLES = 8.0  # 14
+T_CYCLES = 1.0  # 14
 T_STEP = 0.001
 # Noise
 NOISE_VAR = 65
@@ -67,11 +68,8 @@ FIRST_MEMORY = 7
 RECALL_THRESHOLD = 15
 # Replication parameters
 PARAM_NOISE = 700
-# 10 we see saw peaks and bubbles and good transitions
-# print(param_noise)
-PARAM_INHIBITION = 1
-# print(param_inhibition)
 PARAM_CURRENT = 1  # 4.75
+
 
 # ==================
 
@@ -120,7 +118,7 @@ def compute_connectivity_matrices(num_pops, pop, forward_cont, backward_cont):
     return regular_connectivity, forward_connectivity, backward_connectivity
 
 
-def main():
+def main(arg):
     """ Licensing and main execution """
 
     print(
@@ -130,8 +128,10 @@ def main():
         "This is free software, and you are welcome to redistribute it\n"
         "under certain conditions; see the 'LICENSE' file for details.\n"
     )
+    # seed = 123, force = False, dump_pickle = True
+    seed, force, dump_pickle, CONT_FORTH = arg
 
-    np.random.seed(123)
+    np.random.seed(seed)
 
     # Compute memory patterns
     print("Computing memory patterns and neuron populations...")
@@ -186,29 +186,52 @@ def main():
             t_step=T_STEP,
         )
 
-    inhibition = -sine_wave * PARAM_INHIBITION
+    inhibition = -sine_wave
 
+    print(CONT_FORTH)
     # Compute weights
     print("Computing regular, forward and backward connectivity...")
 
-    bkp_file = "bkp/connectivities.p"
+    bkp_file = f"bkp/{seed}-connectivities.p"
 
     os.makedirs(os.path.dirname(bkp_file), exist_ok=True)
 
-    if not os.path.exists(bkp_file):
-        connectivities = compute_connectivity_matrices(
-            num_pops, pop, forward_cont, backward_cont
-        )
-        pickle.dump(connectivities, open(bkp_file, "wb"))
+    regular_connectivity = np.zeros((num_pops, num_pops))
+    forward_connectivity = np.zeros((num_pops, num_pops))
+    backward_connectivity = np.zeros((num_pops, num_pops))
 
-    else:
-        print("Loading connectivity from pickle file...")
-        connectivities = pickle.load(open(bkp_file, "rb"))
+    if not os.path.exists(bkp_file) or force:
+        # Compute weights
+        print("Computing regular, forward and backward connectivity...")
 
-    # regular_connectivity, forward_connectivity, backward_connectivity = \
-    #     compute_connectivity_matrices(num_pops, pop, forward_cont,
-    #                                   backward_cont)
-    regular_connectivity, forward_connectivity, backward_connectivity = connectivities
+        for i in tqdm(range(num_pops)):
+            for j in range(num_pops):
+                regular_connectivity[i, j] = np.sum(
+                    (pop[i, :] - SPARSITY)
+                    * (pop[j, :] - SPARSITY)
+                )
+
+                forward_connectivity[i, j] = np.sum(
+                    pop[i, forward_cont] *
+                    pop[j, forward_cont + 1]
+                )
+
+                backward_connectivity[i, j] = np.sum(
+                    pop[i, backward_cont] *
+                    pop[j, backward_cont - 1]
+                )
+
+        # if dump_pickle:
+        #     pickle.dump(connectivities, open(bkp_file, "wb"))
+
+    # else:
+    #     print("Loading connectivity from pickle file...")
+    #     connectivities = pickle.load(open(bkp_file, "rb"))
+    #
+    # # regular_connectivity, forward_connectivity, backward_connectivity = \
+    # #     compute_connectivity_matrices(num_pops, pop, forward_cont,
+    # #                                   backward_cont)
+    # regular_connectivity, forward_connectivity, backward_connectivity = connectivities
 
     regular_connectivity *= EXCITATION  # MOD REMOVED / NUM_NEURONS
     forward_connectivity *= CONT_FORTH
@@ -216,7 +239,7 @@ def main():
     inhibition *= EXCITATION  # MOD REMOVED / NUM_NEURONS
 
     weights_without_inhibition = (
-        regular_connectivity + forward_connectivity + backward_connectivity
+            regular_connectivity + forward_connectivity + backward_connectivity
     )
 
     # Compute noise
@@ -224,11 +247,11 @@ def main():
 
     for pop in range(num_pops):
         noise[pop] = (
-            np.random.normal(
-                loc=0, scale=(NOISE_VAR * neurons_per_pop[pop]) ** 0.5, size=num_iter
-            )
-            / neurons_per_pop[pop]
-            * PARAM_NOISE
+                np.random.normal(
+                    loc=0, scale=(NOISE_VAR * neurons_per_pop[pop]) ** 0.5, size=num_iter
+                )
+                / neurons_per_pop[pop]
+                * PARAM_NOISE
         )  # MOD ADDED BACK
 
     # Initialize firing rates
@@ -238,11 +261,11 @@ def main():
     c_ini = INIT_RATE ** (1 / GAIN_EXP) - GAIN_THRESHOLD
     current[neurons_encoding_mem[FIRST_MEMORY]] = c_ini
 
-    bkp_file = "bkp/average_firing_rates_per_memory.p"
+    bkp_file = f"bkp/{seed}-average_firing_rates_per_memory.p"
 
     os.makedirs(os.path.dirname(bkp_file), exist_ok=True)
 
-    if not os.path.exists(bkp_file):
+    if not os.path.exists(bkp_file) or force:
         # Compute neuron dynamics
         print("Computing dynamics at each time step...")
 
@@ -252,7 +275,7 @@ def main():
             for pop in range(num_pops):
                 # Compute weights
                 weights = (
-                    weights_without_inhibition[pop, :] + inhibition[time]
+                        weights_without_inhibition[pop, :] + inhibition[time]
                 )  # / NUM_NEURONS
 
                 # Compute input     CHANGE neur to neurons_per_pop[:]
@@ -260,7 +283,7 @@ def main():
                 input_v = np.sum(weights[:] * s_v * firing_rates[:])
 
                 current[pop] += time_param * (
-                    -current[pop] + input_v + noise[pop, time]
+                        -current[pop] + input_v + noise[pop, time]
                 )
 
                 # Backup for the plot
@@ -270,8 +293,8 @@ def main():
             firing_rates[:] = 0
             cond = (current + GAIN_THRESHOLD) > 0
             firing_rates[cond] = (
-                current[cond] * PARAM_CURRENT + GAIN_THRESHOLD
-            ) ** GAIN_EXP
+                                         current[cond] * PARAM_CURRENT + GAIN_THRESHOLD
+                                 ) ** GAIN_EXP
 
             for memory_idx in range(NUM_MEMORIES):
                 f_r = firing_rates[neurons_encoding_mem[memory_idx]]
@@ -287,22 +310,29 @@ def main():
                     c_mu, weights=n_corresponding
                 )
 
-        pickle.dump(average_firing_rates_per_memory, open(bkp_file, "wb"))
+        if dump_pickle:
+            pickle.dump(average_firing_rates_per_memory, open(bkp_file, "wb"))
 
     else:
         print("Loading connectivity from pickle file...")
         average_firing_rates_per_memory = pickle.load(open(bkp_file, "rb"))
 
     # Recall performance
-    counts_memory_recalls = tools.recall_performance.count_memory_recalls(
-        average_firing_rates_per_memory, RECALL_THRESHOLD
+    # counts_memory_recalls = tools.recall_performance.count_memory_recalls(
+    #     average_firing_rates_per_memory, RECALL_THRESHOLD
+    # )
+    # probability_recall_memories = tools.recall_performance.get_probability_recall(
+    #     counts_memory_recalls, T_CYCLES
+    # )
+
+    recalls = tools.recall_performance.get_memory_recalls(
+        RECALL_THRESHOLD, average_firing_rates_per_memory, T_STEP
     )
-    probability_recall_memories = tools.recall_performance.get_probability_recall(
-        counts_memory_recalls, T_CYCLES
-    )
+    tools.recall_performance.save_memory_recalls(recalls, seed, CONT_FORTH)
 
     # Plots
     print("Plotting...")
+
     # plot.currents(currents, dt=t_step,
     #               type_="population", fig_num=0)
     # plot.currents(currents_memory, dt=t_step,
@@ -332,5 +362,37 @@ def main():
     print("Done!")
 
 
-if __name__ == "__main__":
-    main()
+# if __name__ == "__main__":
+#     SEEDS = np.load(os.path.join(".", "seeds.npy"))
+#     SEEDS = SEEDS[:2]
+#     for seed in SEEDS:
+#         main(seed, force=False, dump_pickle=False)
+
+# if __name__ == "__main__":
+#     # SEEDS = np.load(os.path.join(".", "seeds.npy"))
+#     # SEEDS = SEEDS[:2]
+#     js = np.arange(start=400, stop=2520, step=20)
+#     for j in js:
+#         main(20, force=True, dump_pickle=False)
+# for seed in SEEDS:
+# main(seed, force=False, dump_pickle=False)
+
+
+def parallel():
+    """ Compute matrices with parallelization """
+
+    seed = 123
+    force = False
+    dump_pickle = True
+    args = [(seed, force, dump_pickle, j_for) for j_for in np.arange(start=400, stop=2520, step=20)]
+    print(len(args))
+
+    with Pool(cpu_count()) as pool:
+        pools = list(
+            tqdm(pool.imap(main, args), total=len(args))
+        )
+        pool.close()
+        pool.join()
+
+
+parallel()

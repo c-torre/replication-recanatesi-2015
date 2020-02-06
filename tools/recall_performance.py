@@ -6,13 +6,14 @@ Detects when the firing rate of a memory crosses a recall gain_threshold,
 and is therefore recalled
 """
 
+import os
 from itertools import combinations
 
 import numpy as np
 
 
 def count_memory_recalls(firing_rates, recall_threshold):
-    """ THIS IS WRONGO """
+    """ Add all the recalls """
 
     shape_array = firing_rates.shape
     recall_counts = np.zeros(shape_array[0], dtype=int)
@@ -25,7 +26,7 @@ def count_memory_recalls(firing_rates, recall_threshold):
 
             # If increasing and surpassing gain_threshold, increase count
             if (firing_rates[memory_idx, time_step - 1] < recall_threshold) and (
-                firing_rates[memory_idx, time_step] > recall_threshold
+                    firing_rates[memory_idx, time_step] > recall_threshold
             ):
                 recall_counts[memory_idx] += 1
 
@@ -33,12 +34,20 @@ def count_memory_recalls(firing_rates, recall_threshold):
 
 
 def get_memory_recalls(recall_threshold, firing_rates, time_step):
+    """ Get if a memory was recalled at inhibition minima """
 
     firing_rates_recalls = np.int_(firing_rates > recall_threshold)
-    cycle_indices = np.arange(start=0, end=firing_rates.shape[1], step=1 / time_step)
+    cycle_indices = np.arange(
+        start=0, stop=firing_rates.shape[1], step=1 / time_step, dtype=int
+    )
     recalls = firing_rates_recalls[:, cycle_indices]
 
     return recalls
+
+
+def save_memory_recalls(recalls, seed, j_for):
+    os.makedirs("results", exist_ok=True)
+    np.save(os.path.join("results", f"s{seed}-j{j_for}-memory-recalls"), recalls)
 
 
 def get_probability_recall(recalls_per_memory, t_cycles):

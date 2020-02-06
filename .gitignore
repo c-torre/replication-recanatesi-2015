@@ -133,3 +133,6 @@ fig/
 
 # Backup dir
 bkp/
+
+# Avoid matprison files
+original_code/
