@@ -1,5 +1,4 @@
 #%%
-
 import os
 
 import matplotlib.pyplot as plt
@@ -7,8 +6,6 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-
-import paths
 
 PLOTS_DIR = "plt"
 RESULTS_DIR = "results"
@@ -55,6 +52,7 @@ def get_cont_forth_data_frames():
 
 recalls_data_frames_su = get_cont_forth_data_frames()
 
+
 #%%
 
 
@@ -78,7 +76,8 @@ def get_recall_performance_cont_forth(recalls_data_frames):
     return pd.Series(recalls_data_frames, name="recall_for_con")
 
 
-reca = get_recall_performance_cont_forth(recalls_data_frames_su)
+reca = get_recall_performance_cont_forth(recalls_data_frames_su.copy())
+
 
 #%% Plot
 ax = sns.scatterplot(data=reca)
@@ -96,3 +95,26 @@ ax.set(
 # # - Sum along both axes to obtain the cummulative recalls
 
 # spam = test_data[test_data.diff() == 1].sum().sum()
+
+#%%
+
+recall_data_frames = recalls_data_frames_su
+cummulative_vectors = []
+for recall_data_frame in recall_data_frames.values():
+    # Get first time index a memory is recalled, taking care of not recalled
+    memory_first_recall_idx = pd.unique(recall_data_frame.idxmax())
+    cummulative_vector = np.zeros(recall_data_frame.shape[0])
+    # Add 1 to all elements from the first recall until the end of array
+    for memory_recall_idx in memory_first_recall_idx:
+        cummulative_vector[memory_recall_idx:] += 1
+    cummulative_vectors.append(cummulative_vector)
+cummulative_recalls = np.average(np.vstack(cummulative_vectors), axis=0)
+
+#%%
+
+ax = sns.lineplot(data=cummulative_recalls)
+ax.set(
+    xlabel="Time (cycles)",
+    ylabel="Average cumulative number of recalled memories",
+    title="Cumulative Memory Recalls",
+)
