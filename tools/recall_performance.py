@@ -126,3 +126,5 @@ def get_inter_retrieval_times(memory_jumps):
     inter_retrieval_times = np.diff(where_jumps_probed)
 
     return inter_retrieval_times
+
+#%%

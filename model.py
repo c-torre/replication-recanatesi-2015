@@ -207,18 +207,15 @@ def main(arg):
         for i in tqdm(range(num_pops)):
             for j in range(num_pops):
                 regular_connectivity[i, j] = np.sum(
-                    (pop[i, :] - SPARSITY)
-                    * (pop[j, :] - SPARSITY)
+                    (pop[i, :] - SPARSITY) * (pop[j, :] - SPARSITY)
                 )
 
                 forward_connectivity[i, j] = np.sum(
-                    pop[i, forward_cont] *
-                    pop[j, forward_cont + 1]
+                    pop[i, forward_cont] * pop[j, forward_cont + 1]
                 )
 
                 backward_connectivity[i, j] = np.sum(
-                    pop[i, backward_cont] *
-                    pop[j, backward_cont - 1]
+                    pop[i, backward_cont] * pop[j, backward_cont - 1]
                 )
 
         # if dump_pickle:
@@ -239,7 +236,7 @@ def main(arg):
     inhibition *= EXCITATION  # MOD REMOVED / NUM_NEURONS
 
     weights_without_inhibition = (
-            regular_connectivity + forward_connectivity + backward_connectivity
+        regular_connectivity + forward_connectivity + backward_connectivity
     )
 
     # Compute noise
@@ -247,11 +244,11 @@ def main(arg):
 
     for pop in range(num_pops):
         noise[pop] = (
-                np.random.normal(
-                    loc=0, scale=(NOISE_VAR * neurons_per_pop[pop]) ** 0.5, size=num_iter
-                )
-                / neurons_per_pop[pop]
-                * PARAM_NOISE
+            np.random.normal(
+                loc=0, scale=(NOISE_VAR * neurons_per_pop[pop]) ** 0.5, size=num_iter
+            )
+            / neurons_per_pop[pop]
+            * PARAM_NOISE
         )  # MOD ADDED BACK
 
     # Initialize firing rates
@@ -275,7 +272,7 @@ def main(arg):
             for pop in range(num_pops):
                 # Compute weights
                 weights = (
-                        weights_without_inhibition[pop, :] + inhibition[time]
+                    weights_without_inhibition[pop, :] + inhibition[time]
                 )  # / NUM_NEURONS
 
                 # Compute input     CHANGE neur to neurons_per_pop[:]
@@ -283,7 +280,7 @@ def main(arg):
                 input_v = np.sum(weights[:] * s_v * firing_rates[:])
 
                 current[pop] += time_param * (
-                        -current[pop] + input_v + noise[pop, time]
+                    -current[pop] + input_v + noise[pop, time]
                 )
 
                 # Backup for the plot
@@ -293,8 +290,8 @@ def main(arg):
             firing_rates[:] = 0
             cond = (current + GAIN_THRESHOLD) > 0
             firing_rates[cond] = (
-                                         current[cond] * PARAM_CURRENT + GAIN_THRESHOLD
-                                 ) ** GAIN_EXP
+                current[cond] * PARAM_CURRENT + GAIN_THRESHOLD
+            ) ** GAIN_EXP
 
             for memory_idx in range(NUM_MEMORIES):
                 f_r = firing_rates[neurons_encoding_mem[memory_idx]]
@@ -384,13 +381,14 @@ def parallel():
     seed = 123
     force = False
     dump_pickle = True
-    args = [(seed, force, dump_pickle, j_for) for j_for in np.arange(start=400, stop=2520, step=20)]
+    args = [
+        (seed, force, dump_pickle, j_for)
+        for j_for in np.arange(start=400, stop=2520, step=20)
+    ]
     print(len(args))
 
     with Pool(cpu_count()) as pool:
-        pools = list(
-            tqdm(pool.imap(main, args), total=len(args))
-        )
+        pools = list(tqdm(pool.imap(main, args), total=len(args)))
         pool.close()
         pool.join()
 

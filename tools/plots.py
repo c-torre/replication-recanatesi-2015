@@ -15,6 +15,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.ticker import MaxNLocator
 
+import tools.recall_performance
+
 FIG_DIR = "fig"
 os.makedirs(FIG_DIR, exist_ok=True)
 
@@ -284,8 +286,9 @@ def noise(noise_values, t_tot, t_step):
     plt.close(fig)
 
 
+
+
 def probability_recall_given_size(neurons_encoding, probability_recall):
-    """ Figure 4, but not correct """
 
     num_memories = sorted([np.amax(memory) for memory in neurons_encoding])
 
@@ -295,5 +298,92 @@ def probability_recall_given_size(neurons_encoding, probability_recall):
     axis.scatter(num_memories, probability_recall)
 
     plt.savefig(os.path.join(FIG_DIR, "probability_recall_memory_size.pdf"))
+
+    plt.close(fig)
+
+
+def average_num_memories_recalled(recalls):
+
+    fig, axis = plt.subplots
+
+    data = recalls
+
+    plt.tight_layout()
+    axis.set_xlabel("Time (cycles)")
+    axis.set_ylabel("Average number of memories recalled")
+    axis.set_title("Temporal properties of recall A")
+
+    axis.plot(data)
+
+    plt.savefig(os.path.join(FIG_DIR, "probability_recall_memory_size.pdf"))
+
+    plt.close(fig)
+
+
+def count_of_irt(irt):
+
+    fig, axis = plt.subplots
+
+    data = count_of_irt
+
+    plt.tight_layout()
+    axis.set_xlabel("Time (cycles)")
+    axis.set_ylabel("Count of IRT")
+    axis.set_title("Temporal properties of recall B")
+
+    axis.plot(data)
+
+    plt.savefig(os.path.join(FIG_DIR, "count_of_irt.pdf"))
+
+    plt.close(fig)
+
+
+def transition_number(recalls, recall_threshold):
+
+    fig, axis = plt.subplots
+    data = []
+    for irt_size in tools.recall_performance.count_memory_recalls(
+        recalls, recall_threshold
+    ):
+        data.append(irt_size)
+
+    for irt_size in data:
+        axis.plot(times, data[:n_time_steps], linewidth=0.5, alpha=0.2)
+
+    plt.tight_layout()
+    axis.set_xlabel("Transition number")
+    axis.set_ylabel("Average IRT (cycles)")
+    axis.set_title("Temporal properties of recall C")
+
+    plt.savefig(os.path.join(FIG_DIR, "average_irt.pdf"))
+
+    plt.close(fig)
+
+
+def transitions_rank_via_intersections_size(ranked_transitions, probability):
+
+    fig, axis = plt.subplots()
+
+    plt.tight_layout()
+    axis.scatter(ranked_transitions, probability, "-o")
+
+    axis.set_xlabel("Transition rank via intersection size")
+    axis.set_ylabel("Average IRT (cycles)")
+    axis.set_title("Temporal properties of recall C")
+    plt.savefig(os.path.join(FIG_DIR, "memory_transitions_rank.pdf"))
+
+    plt.close(fig)
+
+def recall_performance_cont_forth(cont_forth, recalls)
+
+    fig, axis = plt.subplots()
+
+    plt.tight_layout()
+    axis.scatter(cont_forth, recalls, "-o")
+
+    axis.set_xlabel("Forward contiguity")
+    axis.set_ylabel("Average number of words recalled")
+    axis.set_title("Temporal properties of recall C")
+    plt.savefig(os.path.join(FIG_DIR, "recall_performance_cont_forth.pdf"))
 
     plt.close(fig)
