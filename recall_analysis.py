@@ -98,17 +98,23 @@ ax.set(
 
 #%%
 
-recall_data_frames = recalls_data_frames_su
-cummulative_vectors = []
-for recall_data_frame in recall_data_frames.values():
-    # Get first time index a memory is recalled, taking care of not recalled
-    memory_first_recall_idx = pd.unique(recall_data_frame.idxmax())
-    cummulative_vector = np.zeros(recall_data_frame.shape[0])
-    # Add 1 to all elements from the first recall until the end of array
-    for memory_recall_idx in memory_first_recall_idx:
-        cummulative_vector[memory_recall_idx:] += 1
-    cummulative_vectors.append(cummulative_vector)
-cummulative_recalls = np.average(np.vstack(cummulative_vectors), axis=0)
+
+def get_cumulative_recalls(recalls_data_frames)
+""" Build an array with average cumulative recall of the first recall of every recalled memory """
+
+    cumulative_vectors = []
+    for recall_data_frame in recall_data_frames.values():
+        # Get first time index a memory is recalled, taking care of not recalled
+        memory_first_recall_idx = pd.unique(recall_data_frame.idxmax())
+        cumulative_vector = np.zeros(recall_data_frame.shape[0])
+        # Add 1 to all elements from the first recall until the end of array
+        for memory_recall_idx in memory_first_recall_idx:
+            cumulative_vector[memory_recall_idx:] += 1
+        cumulative_vectors.append(cummulative_vector)
+    
+    return np.average(np.vstack(cummulative_vectors), axis=0)
+
+cumulative_recalls = get_cumulative_recalls(recall_data_frames_su)
 
 #%%
 
@@ -118,3 +124,43 @@ ax.set(
     ylabel="Average cumulative number of recalled memories",
     title="Cumulative Memory Recalls",
 )
+
+#%%
+
+recall_data_frames = recalls_data_frames_su[600]
+
+
+
+
+def get_memory_jumps(recalls):
+    """ When the recalled memory changes """
+
+    # Get a column array of the memory indexes
+    memory_identifier = np.rot90(np.arange(recalls.shape[0]))
+    # Multiply binary array by previous to identify the memories, flatten
+    recalled_memories_time_list = np.sum((recalls * memory_identifier), axis=1)
+    # Substract one element from the previous to get the size of memory jumps
+    memory_jump_sizes = np.diff(recalled_memories_time_list)
+
+    return memory_jump_sizes
+
+
+def get_inter_retrieval_times(memory_jumps):
+    """
+    IRT is the number of iterations that pass before a new memory is recalled.
+    e.g. p1, p1, p1, p5; IRT = 3
+    """
+
+    # There is no jump at the very beginning
+    first_jump_idx = [-1]
+    # Memories jump where difference of recalled memory is not 0; get index
+    where_jumps = np.nonzero(memory_jumps)
+    # Stack "real first jump" to compute diffs correctly
+    where_jumps_probed = np.hstack((first_jump_idx, where_jumps))
+    # Jump after one iteration is IRT=1, not IRT=0
+    where_jumps_probed += 1
+    # Diffs of jump indexes gives iterations until jump; these are the IRT
+    inter_retrieval_times = np.diff(where_jumps_probed)
+
+    return inter_retrieval_times
+
