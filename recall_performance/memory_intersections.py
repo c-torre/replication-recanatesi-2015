@@ -1,9 +1,13 @@
 #%%
 import os
+from itertools import combinations
 
 import numpy as np
+import pandas as pd
 
 import generate_seeds
+
+#%%
 
 FIG_DIR = "fig"
 
@@ -27,28 +31,6 @@ NOISE_VAR = 65
 FIRST_MEMORY = 7
 # Recall
 RECALL_THRESHOLD = 15
-
-
-# ==================
-
-
-def inside_loop_connectivity_matrices(arg):
-    """ Compute the loop inside connectivities to parallelize """
-
-    i, num_pops, pop, backward_cont, forward_cont = arg
-
-    regular = np.zeros(num_pops)
-    forward = np.zeros(num_pops)
-    backward = np.zeros(num_pops)
-
-    for j in range(num_pops):
-        regular[j] = np.sum((pop[i, :] - SPARSITY) * (pop[j, :] - SPARSITY))
-
-        forward[j] = np.sum(pop[i, forward_cont] * pop[j, forward_cont + 1])
-
-        backward[j] = np.sum(pop[i, backward_cont] * pop[j, backward_cont - 1])
-
-    return regular, forward, backward
 
 
 def main(arg):
@@ -75,11 +57,6 @@ def main(arg):
     # np.save(os.path.join("results", f"s{seed}-neurons-encoding"), neurons_encoding_mem)
 
 
-################
-#%%
-import pandas as pd
-
-
 def get_memory_data():
     seeds = np.load("seeds.npy")
     seeds = seeds[:1]
@@ -87,7 +64,68 @@ def get_memory_data():
         (pops), (neurons_per_pop), (pop_num_encoding_mem) = main(seed)
     return (
         pd.DataFrame(pops),
-        pd.DataFrame(neurons_per_pop),
+        pd.Series(neurons_per_pop),
         pd.DataFrame(pop_num_encoding_mem),
     )
 
+
+#%%
+
+# Data load
+((pops), (neurons_per_pop), (pop_num_encoding_mem)) = get_memory_data()
+
+
+def make_all_possible_intersections():
+
+    # Get memory indices
+    num_memories = pops.shape[1]
+    memories_idx = np.arange(num_memories)
+    # Make all possible combinations of two for each memory with another
+    possible_transitions = [
+        transition for transition in combinations(memories_idx, r=2)
+    ]
+
+    # Sum populations corresponding to each memory for combination of memories; dict ready for data frame
+    intersections_dict = {
+        transition: pops.loc[:, transition].sum(axis=1)
+        for transition in possible_transitions
+    }
+
+    # Make data frames from dict
+    intersections_data_frames = pd.DataFrame.from_dict(intersections_dict)
+
+    # Mask the intersections (value of two) and set them to one
+    intersections_data_frames = (intersections_data_frames == 2).astype(int)
+
+    return intersections_data_frames
+
+
+intersections_df = make_all_possible_intersections()
+
+#%%
+
+
+def get_intersection_sizes(intersections_data_frame):
+    """
+    Get the size of every possible memory intersection.
+
+    :returns : pandas Series
+        Multi-indexed with the combination of memory indices making a transition
+    """
+
+    # Shape neurons per pop as the intersection data frame ([populations, combinations])
+    neurons_per_pop_array = np.tile(
+        neurons_per_pop, (intersections_data_frame.shape[1], 1)
+    )
+    neurons_per_pop_array = np.rot90(neurons_per_pop_array, k=3)
+    # Multiply by the size of the population (index)
+    intersections_with_sizes_pop = intersections_data_frame.multiply(
+        neurons_per_pop_array
+    )
+    # Sum along index to obtain the size of intersections
+    intersection_sizes = intersections_data_frame.sum(axis=0)
+
+    return intersection_sizes
+
+
+intersection_sizes = get_intersection_sizes(intersections_df)

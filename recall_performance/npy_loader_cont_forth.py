@@ -1,15 +1,13 @@
 import os
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-import seaborn as sns
-
 
 PLOTS_DIR = "plt"
 RESULTS_DIR = "results"
+CONT_FORTH_DIR = os.path.join(RESULTS_DIR, "forward-contiguity")
 
-RESULTS_FILES = sorted(os.listdir(RESULTS_DIR))
+RESULTS_FILES = sorted(os.listdir(CONT_FORTH_DIR))
 
 
 def get_cont_forth_name_values():

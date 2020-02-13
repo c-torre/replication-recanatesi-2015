@@ -31,7 +31,7 @@ recalls_data_frames = [
 
 example_frame = recalls_data_frames[5]
 
-branches_plot_data = pd.DataFrame(
+global_data_frame = pd.DataFrame(
     index=range(len(example_frame.index)),
     columns=["new_recall_jumps", "jumps_cum_sum", "irts_cum_sum"],
 )
@@ -86,7 +86,7 @@ def expand_irts(irts):
 
 irts_time_series = expand_irts(example_irts)  # Y num
 irts_cum_sum = pd.Series(irts_time_series.cumsum())
-branches_plot_data.loc[:, "irts_cum_sum"] = irts_cum_sum
+global_data_frame.loc[:, "irts_cum_sum"] = irts_cum_sum
 
 #%%
 
@@ -97,7 +97,7 @@ jumps_absolute = vectorized_probe_recalls.diff().dropna()
 jumps_bool = (jumps_absolute != 0).astype(int)
 jumps_cumsum = jumps_bool.cumsum()
 jumps_cum_sum_time_series = pd.concat((pd.Series([0]), jumps_cumsum))  # Y den
-branches_plot_data.loc[:, "jumps_cum_sum"] = jumps_cum_sum_time_series
+global_data_frame.loc[:, "jumps_cum_sum"] = jumps_cum_sum_time_series
 #%% Hunting the first appereance
 
 
@@ -123,24 +123,10 @@ for idx, element in enumerate(first_appereances):
         counter += 1
 
 
-branches_plot_data.loc[:, "new_recall_jumps"] = counts_first_appereances
+global_data_frame.loc[:, "new_recall_jumps"] = counts_first_appereances
 
 # %%
 
-branches_plot_data["average_irts"] = (
-    branches_plot_data["irts_cum_sum"] / branches_plot_data["jumps_cum_sum"]
+global_data_frame["average_irts"] = (
+    global_data_frame["irts_cum_sum"] / global_data_frame["jumps_cum_sum"]
 )
-
-#%%
-
-(
-    (pops),
-    (neurons_per_pop),
-    (pop_num_encoding_mem),
-) = memory_intersections.get_memory_data()
-
-
-# %%
-
-
-# %%
