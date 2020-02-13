@@ -5,7 +5,7 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from recall_performance import npy_loader_cont_forth, memory_intersections
+from recall_performance import npy_loader_cont_forth
 
 PLOTS_DIR = "plt"
 RESULTS_DIR = "results"
@@ -133,14 +133,5 @@ branches_plot_data["average_irts"] = (
 
 #%%
 
-(
-    (pops),
-    (neurons_per_pop),
-    (pop_num_encoding_mem),
-) = memory_intersections.get_memory_data()
+sns.lineplot(x="new_recall_jumps", y="average_irts", data=branches_plot_data)
 
-
-# %%
-
-
-# %%
