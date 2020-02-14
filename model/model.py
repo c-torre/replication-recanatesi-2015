@@ -141,14 +141,15 @@ def main(arg):
     )
 
     # Compute populations
-    pop_per_memory, neurons_per_pop = np.unique(
+    populations_memories, population_sizes = np.unique(
         [tuple(i) for i in memory_patterns], axis=0, return_counts=True
     )
 
-    num_pops = len(pop_per_memory)
+    num_pops = len(populations_memories)
 
     pop_num_encoding_mem = [
-        (pop_per_memory[:, memory] == 1).nonzero()[0] for memory in range(NUM_MEMORIES)
+        (populations_memories[:, memory] == 1).nonzero()[0]
+        for memory in range(NUM_MEMORIES)
     ]  # Not used in this version of the model
 
     # === Other pre-computations ===
@@ -207,15 +208,18 @@ def main(arg):
         for i in tqdm(range(num_pops)):
             for j in range(num_pops):
                 regular_connectivity[i, j] = np.sum(
-                    (pop_per_memory[i, :] - SPARSITY) * (pop_per_memory[j, :] - SPARSITY)
+                    (populations_memories[i, :] - SPARSITY)
+                    * (populations_memories[j, :] - SPARSITY)
                 )
 
                 forward_connectivity[i, j] = np.sum(
-                    pop_per_memory[i, forward_cont] * pop_per_memory[j, forward_cont + 1]
+                    populations_memories[i, forward_cont]
+                    * populations_memories[j, forward_cont + 1]
                 )
 
                 backward_connectivity[i, j] = np.sum(
-                    pop_per_memory[i, backward_cont] * pop_per_memory[j, backward_cont - 1]
+                    populations_memories[i, backward_cont]
+                    * populations_memories[j, backward_cont - 1]
                 )
 
         # if dump_pickle:
@@ -242,12 +246,14 @@ def main(arg):
     # Compute noise
     print("Calculating uncorrelated Gaussian noise...")
 
-    for pop_per_memory in range(num_pops):
-        noise[pop_per_memory] = (
+    for populations_memories in range(num_pops):
+        noise[populations_memories] = (
             np.random.normal(
-                loc=0, scale=(NOISE_VAR * neurons_per_pop[pop_per_memory]) ** 0.5, size=num_iter
+                loc=0,
+                scale=(NOISE_VAR * population_sizes[populations_memories]) ** 0.5,
+                size=num_iter,
             )
-            / neurons_per_pop[pop_per_memory]
+            / population_sizes[populations_memories]
             * PARAM_NOISE
         )  # MOD ADDED BACK
 
@@ -269,25 +275,30 @@ def main(arg):
         for time in tqdm(range(num_iter)):
 
             # Update current
-            for pop_per_memory in range(num_pops):
+            for populations_memories in range(num_pops):
                 # Compute weights
                 weights = (
-                    weights_without_inhibition[pop_per_memory, :] + inhibition[time]
+                    weights_without_inhibition[populations_memories, :]
+                    + inhibition[time]
                 )  # / NUM_NEURONS
 
                 # Compute input     CHANGE neur to neurons_per_pop[:]
                 fraction_neurons_pop = (
-                    neurons_per_pop[:] / NUM_NEURONS
+                    population_sizes[:] / NUM_NEURONS
                 )  # DID NOT CHANGE
 
-                input_other_pop = np.sum(weights[:] * fraction_neurons_pop * firing_rates[:])
+                input_other_pop = np.sum(
+                    weights[:] * fraction_neurons_pop * firing_rates[:]
+                )
 
-                current[pop_per_memory] += time_tot * (
-                    -current[pop_per_memory] + input_other_pop + noise[pop_per_memory, time]
+                current[populations_memories] += time_tot * (
+                    -current[populations_memories]
+                    + input_other_pop
+                    + noise[populations_memories, time]
                 )
 
                 # Store result for the plot
-                currents[pop_per_memory, time] = current[pop_per_memory]
+                currents[populations_memories, time] = current[populations_memories]
 
             # Update firing rates
             firing_rates[:] = 0
@@ -298,7 +309,7 @@ def main(arg):
 
             for memory_idx in range(NUM_MEMORIES):
                 f_r = firing_rates[pop_num_encoding_mem[memory_idx]]
-                n_corresponding = neurons_per_pop[pop_num_encoding_mem[memory_idx]]
+                n_corresponding = population_sizes[pop_num_encoding_mem[memory_idx]]
 
                 average_firing_rates_per_memory[memory_idx, time] = np.average(
                     f_r, weights=n_corresponding
