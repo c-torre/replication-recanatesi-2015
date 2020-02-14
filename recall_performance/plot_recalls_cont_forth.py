@@ -36,9 +36,9 @@ data = get_recall_performance_cont_forth(cont_forth_data_frames_dict)
 def plot_recalled_memories_cont_forth(data):
     ax = sns.scatterplot(data=data)
     ax.set(
-        xlabel="Forward contiguity $J_{forth}$",
-        ylabel="Number of recalled memories",
-        title="Recalled Memories per $J_{forth}$",
+        title="Recalled Memories per Forward Contiguity Value",
+        xlabel="$\kappa_{forth}$",
+        ylabel="Number of unique recalled memories",
     )
 
 

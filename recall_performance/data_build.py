@@ -159,6 +159,7 @@ def make_all():
 
     all_data = []
 
+    print("Building all data frames for recalls analysis...")
     for recalls_data_frame in tqdm(recalls_data_frames):
 
         # Make the data frame that will contain all info indexes by time cycle

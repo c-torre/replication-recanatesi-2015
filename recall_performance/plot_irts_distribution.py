@@ -6,7 +6,7 @@ import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-from recall_performance import npy_loader_cont_forth
+from recall_performance import data_build
 
 PLOTS_DIR = "plt"
 RESULTS_DIR = "results"
@@ -14,19 +14,20 @@ RESULTS_DIR = "results"
 RESULTS_FILES = sorted(os.listdir(RESULTS_DIR))
 
 
-def drop_bad_recalls(recalls_data_frame):
-    """ Drop time steps with no memory recall """
-    return recalls_data_frame.drop(
-        recalls_data_frame[recalls_data_frame.sum(axis=1) == 0].index
-    )
+# def drop_bad_recalls(recalls_data_frame):
+#     """ Drop time steps with no memory recall """
+#     return recalls_data_frame.drop(
+#         recalls_data_frame[recalls_data_frame.sum(axis=1) == 0].index
+#     )
 
 
-recalls_data_frames = list(npy_loader_cont_forth.get_cont_forth_data_frames().values())
+# recalls_data_frames = list(npy_loader_cont_forth.get_cont_forth_data_frames().values())
 
-recalls_data_frames = [
-    drop_bad_recalls(recall_data_frame) for recall_data_frame in recalls_data_frames
-]
+# recalls_data_frames = [
+#     drop_bad_recalls(recall_data_frame) for recall_data_frame in recalls_data_frames
+# ]
 
+recalls_data_frames = data_build.make_all()
 
 #%%
 

@@ -5,7 +5,7 @@ import pandas as pd
 
 PLOTS_DIR = "plt"
 RESULTS_DIR = "results"
-CONT_FORTH_DIR = os.path.join(RESULTS_DIR, "forward-contiguity")
+CONT_FORTH_DIR = os.path.join(RESULTS_DIR, "forward-contiguities")
 
 CONT_FORTH_FILES = sorted(os.listdir(CONT_FORTH_DIR))
 
