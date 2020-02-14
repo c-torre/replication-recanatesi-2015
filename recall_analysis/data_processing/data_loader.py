@@ -4,7 +4,7 @@ import numpy as np
 import pandas as pd
 
 
-def _get_recalls_arrays(results_type_dir):
+def get_arrays_from_files(results_type_dir):
 
     files = sorted(os.listdir(results_type_dir))
     return [
@@ -44,6 +44,12 @@ def _drop_bad_recalls(recalls_data_frames):
 def get_cleaned_frames(results_type_dir):
     """ From results files to cleaned data frames """
 
-    recalls_arrays = _get_recalls_arrays(results_type_dir)
+    recalls_arrays = get_arrays_from_files(results_type_dir)
     recalls_data_frames = _get_recalls_data_frames(recalls_arrays)
     return _drop_bad_recalls(recalls_data_frames)
+
+
+def arrays_to_data_frames(arrays):
+    """ Array to data frame """
+
+    return [pd.DataFrame(array) for array in arrays]
