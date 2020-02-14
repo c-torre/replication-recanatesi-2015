@@ -123,9 +123,9 @@ def get_intersection_sizes(intersections_data_frame):
         neurons_per_pop_array
     )
     # Sum along index to obtain the size of intersections
-    intersection_sizes = intersections_data_frame.sum(axis=0)
+    intersection_sizes = intersections_with_sizes_pop.sum(axis=0)
 
-    return intersection_sizes
+    return pd.Series(intersection_sizes, name="intersection_sizes")
 
 
 intersection_sizes = get_intersection_sizes(intersections_df)

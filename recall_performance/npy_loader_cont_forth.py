@@ -7,7 +7,7 @@ PLOTS_DIR = "plt"
 RESULTS_DIR = "results"
 CONT_FORTH_DIR = os.path.join(RESULTS_DIR, "forward-contiguity")
 
-RESULTS_FILES = sorted(os.listdir(CONT_FORTH_DIR))
+CONT_FORTH_FILES = sorted(os.listdir(CONT_FORTH_DIR))
 
 
 def get_cont_forth_name_values():
@@ -15,7 +15,7 @@ def get_cont_forth_name_values():
     # This gets forward contiguity parameter value from file names
     return [
         int(file_name.split("-")[1][1:])
-        for file_name in RESULTS_FILES
+        for file_name in CONT_FORTH_FILES
         if "j" in file_name
     ]
 
@@ -23,8 +23,8 @@ def get_cont_forth_name_values():
 def get_recall_arrays():
 
     return [
-        np.load(os.path.join(RESULTS_DIR, file_name))
-        for file_name in RESULTS_FILES
+        np.load(os.path.join(CONT_FORTH_DIR, file_name))
+        for file_name in CONT_FORTH_FILES
         if "j" in file_name
     ]
 
