@@ -6,7 +6,7 @@ import pandas as pd
 from tqdm import tqdm
 
 import paths
-import recall_analysis.data_processing.data_loader
+from recall_analysis.data_processing.pre_processing import loader_utils
 
 POPULATIONS_MEMORIES_DIR = paths.POPULATIONS_MEMORIES_DIR
 POPULATION_SIZES_DIR = paths.POPULATION_SIZES_DIR
@@ -14,17 +14,11 @@ POPULATION_SIZES_DIR = paths.POPULATION_SIZES_DIR
 
 #%%
 
-populations_memories = recall_analysis.data_processing.data_loader.get_arrays_from_files(
-    POPULATIONS_MEMORIES_DIR
-)
+populations_memories = loader_utils.get_arrays_from_files(POPULATIONS_MEMORIES_DIR)
 
-populations_memories = recall_analysis.data_processing.data_loader.arrays_to_data_frames(
-    populations_memories
-)
+populations_memories = loader_utils.arrays_to_data_frames(populations_memories)
 
-population_sizes = recall_analysis.data_processing.data_loader.get_arrays_from_files(
-    POPULATION_SIZES_DIR
-)
+population_sizes = loader_utils.get_arrays_from_files(POPULATION_SIZES_DIR)
 
 # Data load
 # ((pops), (neurons_per_pop)) = get_memory_data()

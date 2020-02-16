@@ -5,8 +5,10 @@ import pandas as pd
 
 
 def get_arrays_from_files(results_type_dir):
+    """ Loads all .npy files into a list from the indicated dir """
 
     files = sorted(os.listdir(results_type_dir))
+    assert files
     return [
         np.load(os.path.join(results_type_dir, file_name))
         for file_name in files

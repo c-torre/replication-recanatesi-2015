@@ -4,11 +4,11 @@ import pandas as pd
 from tqdm import tqdm
 
 import paths
-from recall_analysis.data_processing import data_loader
+from recall_analysis.data_processing.pre_processing import loader_utils
 
 SEED_RESULTS_DIR = paths.SEED_RESULTS_DIR
 
-recalls_data_frames = data_loader.get_cleaned_frames(SEED_RESULTS_DIR)
+recalls_data_frames = loader_utils.get_cleaned_frames(SEED_RESULTS_DIR)
 
 # Avoid division by zero exception later with hacky sum
 EPSILON = 0.000000001
@@ -34,7 +34,7 @@ def _get_memory_jumps_idx(recalls):
     # Eliminate all -1 from diff() to get ones after sum, where jumps happened
     jumps = jumps[jumps == 1]
     # Sum along columns to obtain the vector of jumps, 1 when jumped, 0 when not
-    jumps_vector = jumps.sum(axis=1)
+    jumps_vector = jumps.sum(axis=1).values
     # Add its index information to the memory jump
     jumps_idx = jumps_vector * np.arange(jumps_vector.size)
     # Remove zeros to just return indices
@@ -104,9 +104,6 @@ def get_jumps(vectorized_recalls):
     return pd.Series(jumps_bool, name="transition", dtype=bool)
 
 
-#%%
-
-
 #%% Hunting the first appereance
 
 
@@ -137,7 +134,7 @@ def get_first_unique_recalls(vectorized_probed_recalls, recalls_analysis_data_fr
     return pd.Series(counts_first_appereances, name="unique_recall_count")
 
 
-# Loop all
+#%% Loop all
 
 
 def make_all():
@@ -180,6 +177,8 @@ def make_all():
 
     return all_data
 
+
+#%% Go
 
 if __name__ == "__main__":
     recalls_analysis_data_frames = make_all()
