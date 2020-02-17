@@ -100,7 +100,7 @@ for idx in range(len(recalls_analysis_data_frames_all)):
     )
 
 #%%
-counts_series = counts_distribution ["irt"]
+counts_series = counts_distribution["irt"]
 counts_series = counts_series[counts_series != 0].value_counts()
 
 
