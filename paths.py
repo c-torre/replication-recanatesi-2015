@@ -12,6 +12,7 @@ def get_and_make_dir_path(path_name_prev, path_name_next):
     os.makedirs(directory, exist_ok=True)
     return directory
 
+BKP_DIR = get_and_make_dir_path(ROOT_DIR, "bkp")
 
 #
 RECALL_DIR = os.path.join(ROOT_DIR, "recall_analysis")

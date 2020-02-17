@@ -1,18 +1,15 @@
+"""
+
+"""
+
 #%%
+
 import numpy as np
 import pandas as pd
 from tqdm import tqdm
 
 import paths
 from recall_analysis.data_processing.pre_processing import loader_utils
-
-SEED_RESULTS_DIR = paths.SEED_RESULTS_DIR
-
-recalls_data_frames = loader_utils.get_cleaned_frames(SEED_RESULTS_DIR)
-
-# Avoid division by zero exception later with hacky sum
-EPSILON = 0.000000001
-
 
 #%%
 
@@ -122,7 +119,10 @@ def get_first_unique_recalls(vectorized_probed_recalls, recalls_analysis_data_fr
     # Set an array with ones in the indices of unique recall
     first_appereances = pd.Series(np.zeros(recalls_analysis_data_frame.shape[0]))
     first_appereances.iloc[unique_memory_recalls_idx] = 1
+    return pd.Series(first_appereances, name="unique_recalls")
 
+
+def get_counts_unique_recalls(first_appereances):
     # Get counts from first appereances in previous array
     counter = 1
     counts_first_appereances = np.zeros_like(first_appereances)  # X
@@ -137,14 +137,18 @@ def get_first_unique_recalls(vectorized_probed_recalls, recalls_analysis_data_fr
 #%% Loop all
 
 
-def make_all():
+def make_all(files_path):
+
+    recalls_data_frames = loader_utils.get_cleaned_frames(files_path)
+    # Avoid division by zero exception later with hacky sum
+    epsilon = 0.000000001
 
     all_data = []
 
     print("Building all data frames for recalls analysis...")
     for recalls_data_frame in tqdm(recalls_data_frames):
 
-        # Make the data frame that will contain all info indexes by time cycle
+        # Make the data frame that will contain all info indexed by time cycle
         recalls_analysis_data_frame = make_master_data_frame(recalls_data_frame)
 
         # IRT
@@ -167,11 +171,15 @@ def make_all():
         ] = recalls_analysis_data_frame["transition"].cumsum()
         # Average IRTs dividing cumulative IRTs by cumulative transitions
         recalls_analysis_data_frame["average_irts"] = (
-            recalls_analysis_data_frame["irts_cum_sum"] + EPSILON
-        ) / (recalls_analysis_data_frame["transitions_cum_sum"] + EPSILON)
+            recalls_analysis_data_frame["irts_cum_sum"] + epsilon
+        ) / (recalls_analysis_data_frame["transitions_cum_sum"] + epsilon)
         # New memory is recalled which was not recalled before, add 1 at time cycle it happens, else 0
-        recalls_analysis_data_frame["unique_recall_count"] = get_first_unique_recalls(
+        unique_recalls = get_first_unique_recalls(
             recalls_analysis_data_frame["memory_recalled"], recalls_analysis_data_frame
+        )
+        recalls_analysis_data_frame["unique_recalls_cum_sum"] = unique_recalls.cumsum()
+        recalls_analysis_data_frame["unique_recall_count"] = get_counts_unique_recalls(
+            unique_recalls
         )
         all_data.append(recalls_analysis_data_frame)
 
@@ -180,5 +188,5 @@ def make_all():
 
 #%% Go
 
-if __name__ == "__main__":
-    recalls_analysis_data_frames = make_all()
+# if __name__ == "__main__":
+#     recalls_analysis_data_frames = make_all()
