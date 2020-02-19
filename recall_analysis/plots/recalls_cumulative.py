@@ -1,14 +1,14 @@
 #%%
 import os
 import pickle
+
 import numpy as np
-import pandas as pd
 import seaborn as sns
 
-import recall_analysis.data_processing.main
 import paths
+import recall_analysis.data_processing.main
 
-file_pkl = os.path.join(paths.BKP_DIR, f"recalls_frames_seeds.p")
+file_pkl = os.path.join(paths.BKP_DIR, "recalls_frames_seeds.p")
 
 if not os.path.exists(file_pkl):
     recall_analysis.data_processing.main.make_pickles()
@@ -51,6 +51,7 @@ cumulative_averages = np.average(
 )
 
 #%%
+
 
 def plot_cumulative_recalled_memories(data):
     ax = sns.lineplot(data=cumulative_averages)

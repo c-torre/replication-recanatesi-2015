@@ -1,12 +1,3 @@
-#%%
-# import pandas as pd
-# import seaborn as sns
-
-# import recall_analysis.npy_loader_cont_forth
-
-# cont_forth_data_frames_dict = (
-#     recall_performance.npy_loader_cont_forth.get_cont_forth_data_frames()
-# )
 import os
 import pickle
 import numpy as np
@@ -16,7 +7,7 @@ import seaborn as sns
 import recall_analysis.data_processing.main
 import paths
 
-file_pkl = os.path.join(paths.BKP_DIR, "recalls_frames_cont.p")
+file_pkl = os.path.join(paths.BKP_DIR, "recalls_frames_noise.p")
 
 if not os.path.exists(file_pkl):
     recall_analysis.data_processing.main.make_pickles()
@@ -72,23 +63,11 @@ data_good["mod_param"] = data_int
 def plot_recalled_memories_cont_forth(data):
     ax = sns.scatterplot(x="mod_param", y="unique_recalls_cum_sum", data=data)
     ax.set(
-        title="Recalled Memories per Forward Contiguity Value",
-        xlabel="$\kappa_{forth}$",
+        title="Recalled Memories per Noise Variance Value",
+        xlabel="$\sqrt{\sigma}$",
         ylabel="Number of unique memories recalled",
     )
 
 
 if __name__ == "__main__":
     plot_recalled_memories_cont_forth(data_good)
-
-# #%% Cummulative recalls (just when a memory changes)
-# # Get totall different memory recalls by:
-# # - Checking the difference of recall against the previous iteration
-# # - If there is a memory jump, diff is 1 for the new memory and -1 for previous
-# # - Sum along both axes to obtain the cummulative recalls
-
-# spam = test_data[test_data.diff() == 1].sum().sum()
-
-
-
-# %%

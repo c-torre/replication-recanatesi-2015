@@ -66,8 +66,7 @@ def _expand_irts(irts, recalls_data_frame):
 
     if irts.size != 0:
         return np.hstack([(np.hstack((np.zeros(irt - 1), irt))) for irt in irts])
-    else:
-        return np.zeros(recalls_data_frame.shape[0])
+    return np.zeros(recalls_data_frame.shape[0])
 
 
 def get_irts_time_series(recalls):
@@ -87,18 +86,20 @@ def get_vectorized_probed_recalls(recalls_data_frame):
     probe = np.cumsum(np.ones_like(recalls_data_frame), axis=1) - 1
     probed_recalls = recalls_data_frame * (probe)
     vectorized_probed_recalls = probed_recalls.sum(axis=1)
+    print(vectorized_probed_recalls)
     return vectorized_probed_recalls
 
 
 #%%
 
 
-def get_jumps(vectorized_recalls):
+def get_transitions(vectorized_recalls):
     # Duplicate?
 
-    jumps_absolute = vectorized_recalls.diff().dropna()
-    jumps_bool = (jumps_absolute != 0).astype(int)
-    return pd.Series(jumps_bool, name="transition", dtype=bool)
+    jumps_absolute = vectorized_recalls.diff()  # .fillna(0)
+    jumps_bool = jumps_absolute != 0
+    jumps_bool.loc[0] = False
+    return pd.Series(jumps_bool, name="transition")
 
 
 #%% Hunting the first appereance
@@ -117,21 +118,66 @@ def get_first_unique_recalls(vectorized_probed_recalls, recalls_analysis_data_fr
     )
 
     # Set an array with ones in the indices of unique recall
-    first_appereances = pd.Series(np.zeros(recalls_analysis_data_frame.shape[0]))
-    first_appereances.iloc[unique_memory_recalls_idx] = 1
+    first_appereances = pd.Series(
+        np.zeros(recalls_analysis_data_frame.shape[0]), dtype=bool
+    )
+    first_appereances.iloc[unique_memory_recalls_idx] = True
     return pd.Series(first_appereances, name="unique_recalls")
 
 
 def get_counts_unique_recalls(first_appereances):
     # Get counts from first appereances in previous array
     counter = 1
-    counts_first_appereances = np.zeros_like(first_appereances)  # X
+    counts_first_appereances = np.zeros_like(first_appereances, dtype=int)  # X
     for idx, element in enumerate(first_appereances):
-        if element == 1:
+        if element:
             counts_first_appereances[idx] = counter
             counter += 1
 
     return pd.Series(counts_first_appereances, name="unique_recall_count")
+
+
+def get_memory_sizes(data_frame_idx):
+    # Get data
+    populations_memories_dir = paths.POPULATIONS_MEMORIES_DIR
+    population_sizes_dir = paths.POPULATION_SIZES_DIR
+
+    populations_memories = loader_utils.get_arrays_from_files(
+        populations_memories_dir, calling_intersections=True
+    )
+    populations_memories = loader_utils.arrays_to_data_frames(populations_memories)
+    population_sizes = loader_utils.get_arrays_from_files(
+        population_sizes_dir, calling_intersections=True
+    )
+
+    # Get memory sizes by multiplying each population by its size and adding all beloging to memory
+    populations_with_sizes = populations_memories[data_frame_idx] * np.rot90(
+        np.expand_dims(population_sizes[data_frame_idx], axis=0), k=3
+    )
+
+    memory_sizes = populations_with_sizes.sum()
+    memory_sizes.name = "memory_size"
+    return memory_sizes
+
+
+def merge_recalled_memory_with_size(data_frame_idx, recalled_memories):
+
+    # recalls_frame = recalls_frame["memory_recalled"]
+    # recalls_frame.name = "memory_recalled"
+    memory_sizes = get_memory_sizes(data_frame_idx)
+    # print(memory_sizes)
+    after = pd.merge(
+        left=recalled_memories,
+        right=memory_sizes,
+        how="left",
+        left_on=[recalled_memories],
+        right_index=True,
+    )
+    if data_frame_idx == 14:
+        print("PRE", len(recalled_memories.index))
+        print("POST", len(after.index))
+    after = after.iloc[:, 1]
+    return after
 
 
 #%% Loop all
@@ -139,18 +185,26 @@ def get_counts_unique_recalls(first_appereances):
 
 def make_all(files_path):
 
-    recalls_data_frames = loader_utils.get_cleaned_frames(files_path)
+    recalls_data_frames_dict = loader_utils.get_cleaned_frames(files_path)
+
     # Avoid division by zero exception later with hacky sum
     epsilon = 0.000000001
 
     all_data = []
 
     print("Building all data frames for recalls analysis...")
-    for recalls_data_frame in tqdm(recalls_data_frames):
+    for idx, (mod_param, recalls_data_frame) in tqdm(
+        enumerate(recalls_data_frames_dict.items())
+    ):
+        # for mod_param, recalls_data_frame in tqdm(recalls_data_frames_dict.items()):
 
         # Make the data frame that will contain all info indexed by time cycle
         recalls_analysis_data_frame = make_master_data_frame(recalls_data_frame)
 
+        print("THE BEGINNING")
+        recalls_analysis_data_frame["mod_param"] = mod_param
+        if idx == 14:
+            print(recalls_analysis_data_frame)
         # IRT
         recalls_analysis_data_frame["irt"] = get_irts_time_series(recalls_data_frame)
         # IRT cumulative sum
@@ -161,8 +215,21 @@ def make_all(files_path):
         recalls_analysis_data_frame["memory_recalled"] = get_vectorized_probed_recalls(
             recalls_data_frame
         )
+        # if idx == 14:
+
+        #     recalls_analysis_data_frame["memory_recalled"] = 2
+        print(len(recalls_analysis_data_frame.index))
+        # Recalled memory sizes
+        # recalls_analysis_data_frame = merge_recalled_memory_with_size(
+        #     idx, recalls_analysis_data_frame
+        # )
+        if idx == 14:
+            return recalls_analysis_data_frame
+        recalls_analysis_data_frame["memory_size"] = merge_recalled_memory_with_size(
+            idx, recalls_analysis_data_frame["memory_recalled"]
+        )
         # Transition (bool), if happened
-        recalls_analysis_data_frame["transition"] = get_jumps(
+        recalls_analysis_data_frame["transition"] = get_transitions(
             recalls_analysis_data_frame["memory_recalled"]
         )
         # Cumulative sum of the transitions
@@ -177,9 +244,15 @@ def make_all(files_path):
         unique_recalls = get_first_unique_recalls(
             recalls_analysis_data_frame["memory_recalled"], recalls_analysis_data_frame
         )
+
+        recalls_analysis_data_frame["unique_recall"] = unique_recalls
         recalls_analysis_data_frame["unique_recalls_cum_sum"] = unique_recalls.cumsum()
         recalls_analysis_data_frame["unique_recall_count"] = get_counts_unique_recalls(
             unique_recalls
+        )
+        recalls_analysis_data_frame["unique_irt"] = (
+            recalls_analysis_data_frame["unique_recall"]
+            * recalls_analysis_data_frame["average_irts"]
         )
         all_data.append(recalls_analysis_data_frame)
 
@@ -188,5 +261,10 @@ def make_all(files_path):
 
 #%% Go
 
-# if __name__ == "__main__":
-#     recalls_analysis_data_frames = make_all()
+
+if __name__ == "__main__":
+    import paths
+
+    SEED_RESULTS_DIR = paths.SEED_RESULTS_DIR
+    recalls_analysis_data_frames = make_all(SEED_RESULTS_DIR)
+

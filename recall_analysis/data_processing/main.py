@@ -7,12 +7,9 @@ Orchestrate pipeline
 import os
 import pickle
 
+import paths
 from recall_analysis.data_processing import combined
 from recall_analysis.data_processing.pre_processing import intersections, recalls
-
-
-import paths
-from recall_analysis.data_processing.pre_processing import loader_utils
 
 BKP_DIR = paths.BKP_DIR
 
@@ -25,7 +22,10 @@ FILE_PATHS = {
 
 
 def make_pickles():
-
+    # Intersections
+    intersection_sizes = intersections.make_all()
+    file_pkl = os.path.join(BKP_DIR, "intersection_sizes.p")
+    pickle.dump(intersection_sizes, open(file_pkl, "wb"))
     # Recalls
     recalls_analysis_data_frames_results = {
         results_type: recalls.make_all(files_path)
@@ -35,11 +35,6 @@ def make_pickles():
     for results_type, data_frames in recalls_analysis_data_frames_results.items():
         file_pkl = os.path.join(BKP_DIR, f"recalls_frames_{results_type}.p")
         pickle.dump(data_frames, open(file_pkl, "wb"))
-
-    # Intersections
-    intersection_sizes = intersections.make_all()
-    file_pkl = os.path.join(BKP_DIR, "intersection_sizes.p")
-    pickle.dump(intersection_sizes, open(file_pkl, "wb"))
 
     # Combined
     combined_recalls_intersections_all = combined.make_all(
@@ -57,7 +52,10 @@ def make_pickles():
     #     pickle.dump(data_frames, open(file_pkl, "wb"))
 
 
-make_pickles()
+# make_pickles()
 
 
 # combined_recalls_intersections_all = combined.make_all(recalls_analysis_data_frames)
+
+
+# %%

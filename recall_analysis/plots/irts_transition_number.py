@@ -1,35 +1,90 @@
 #%%
+# #%%
+# import os
+
+# import numpy as np
+# import pandas as pd
+# import seaborn as sns
+
+# from recall_analysis import npy_loader_cont_forth
+
+# PLOTS_DIR = "plt"
+# RESULTS_DIR = "results"
+
+# RESULTS_FILES = sorted(os.listdir(RESULTS_DIR))
+
+
+# def drop_bad_recalls(recalls_data_frame):
+#     """ Drop time steps with no memory recall """
+#     return recalls_data_frame.drop(
+#         recalls_data_frame[recalls_data_frame.sum(axis=1) == 0].index
+#     )
+
+
+# recalls_data_frames = list(npy_loader_cont_forth.get_cont_forth_data_frames().values())
+
+# recalls_data_frames = [
+#     drop_bad_recalls(recall_data_frame) for recall_data_frame in recalls_data_frames
+# ]
 import os
+import pickle
 
 import numpy as np
 import pandas as pd
 import seaborn as sns
 
-from recall_analysis import npy_loader_cont_forth
+import paths
+import recall_analysis.data_processing.main
 
-PLOTS_DIR = "plt"
-RESULTS_DIR = "results"
+file_pkl = os.path.join(paths.BKP_DIR, "recalls_frames_seeds.p")
 
-RESULTS_FILES = sorted(os.listdir(RESULTS_DIR))
+if not os.path.exists(file_pkl):
+    recall_analysis.data_processing.main.make_pickles()
 
-
-def drop_bad_recalls(recalls_data_frame):
-    """ Drop time steps with no memory recall """
-    return recalls_data_frame.drop(
-        recalls_data_frame[recalls_data_frame.sum(axis=1) == 0].index
-    )
-
-
-recalls_data_frames = list(npy_loader_cont_forth.get_cont_forth_data_frames().values())
-
-recalls_data_frames = [
-    drop_bad_recalls(recall_data_frame) for recall_data_frame in recalls_data_frames
-]
-
+recalls_analysis_data_frames_all = pickle.load(open(file_pkl, "rb"))
 
 #%%
 
-example_frame = recalls_data_frames[5]
+
+# spam = recalls_analysis_data_frames_all[0]["unique_recalls_cum_sum"].iloc[-1]
+
+
+# branches = np.unique(
+#     [
+#         recalls_analysis_data_frame["unique_recalls_cum_sum"].iloc[-1]
+#         for recalls_analysis_data_frame in recalls_analysis_data_frames_all
+#     ]
+# )
+
+indexed = [
+    pd.Series(
+        recalls_analysis_data_frame["average_irts"],
+        name=recalls_analysis_data_frame["average_irts"].iloc[-1],
+    )
+    for recalls_analysis_data_frame in recalls_analysis_data_frames_all
+]
+
+#%%
+
+spam = pd.DataFrame(indexed)
+
+#%%dd
+
+# ["transitions_cum_sum",
+# "average_irts"  # y
+# ]
+#%%
+
+eggs = spam.groupby(by=spam.index).sum().reset_index(drop=True)
+eggs.index += 1
+eggs.index.name = "average_irts"
+
+#%%
+# pd.concat([eggs], keys=['foo'], names=['Firstlevel'])
+
+#%%
+
+example_frame = recalls_analysis_data_frames_all[5]
 
 branches_plot_data = pd.DataFrame(
     index=range(len(example_frame.index)),
@@ -133,5 +188,11 @@ branches_plot_data["average_irts"] = (
 
 #%%
 
-sns.lineplot(x="new_recall_jumps", y="average_irts", data=branches_plot_data)
+a = pd.melt(eggs, )
+
+#%%
+
+for num_unique_recalls in 
+# sns.lineplot(x="new_recall_jumps", y="average_irts", data=branches_plot_data)
+sns.lineplot(data=eggs)
 

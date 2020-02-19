@@ -1,8 +1,7 @@
-"""
-
-"""
-
 #%%
+"""
+
+"""
 
 from itertools import combinations
 
@@ -13,8 +12,6 @@ from tqdm import tqdm
 import paths
 from recall_analysis.data_processing.pre_processing import loader_utils
 
-POPULATIONS_MEMORIES_DIR = paths.POPULATIONS_MEMORIES_DIR
-POPULATION_SIZES_DIR = paths.POPULATION_SIZES_DIR
 # Data load
 # ((pops), (neurons_per_pop)) = get_memory_data()
 
@@ -81,9 +78,18 @@ def get_intersection_sizes(intersections_data_frame, population_sizes):
 
 def make_all():
 
-    populations_memories = loader_utils.get_arrays_from_files(POPULATIONS_MEMORIES_DIR)
+    populations_memories_dir = paths.POPULATIONS_MEMORIES_DIR
+    population_sizes_dir = paths.POPULATION_SIZES_DIR
+
+    populations_memories = loader_utils.get_arrays_from_files(
+        populations_memories_dir, calling_intersections=True
+    )
+    # print(type(populations_memories))
+    # print(list(populations_memories.values()))
     populations_memories = loader_utils.arrays_to_data_frames(populations_memories)
-    population_sizes = loader_utils.get_arrays_from_files(POPULATION_SIZES_DIR)
+    population_sizes = loader_utils.get_arrays_from_files(
+        population_sizes_dir, calling_intersections=True
+    )
 
     assert len(populations_memories) == len(population_sizes)
 
@@ -99,8 +105,10 @@ def make_all():
         )
         intersection_sizes_all.append(intersections_sizes)
 
+    assert intersection_sizes_all
+
     return intersection_sizes_all
 
 
-# if __name__ == "__main__":
-#     intersections_sizes_all = make_all()
+if __name__ == "__main__":
+    intersections_sizes_all = make_all()
