@@ -15,8 +15,8 @@ BKP_DIR = paths.BKP_DIR
 
 FILE_PATHS = {
     "seeds": paths.SEED_RESULTS_DIR,
-    "cont": paths.CONT_RESULTS_DIR,
-    "noise": paths.NOISE_RESULTS_DIR,
+    # "cont": paths.CONT_RESULTS_DIR,
+    # "noise": paths.NOISE_RESULTS_DIR,
 }
 #%%
 
@@ -52,6 +52,7 @@ def make_pickles():
     #     pickle.dump(data_frames, open(file_pkl, "wb"))
 
 
+# NOT FOR J AND NOISE U BRAINLET
 # make_pickles()
 
 

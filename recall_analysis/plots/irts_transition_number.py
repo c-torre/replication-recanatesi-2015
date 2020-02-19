@@ -58,17 +58,32 @@ recalls_analysis_data_frames_all = pickle.load(open(file_pkl, "rb"))
 
 indexed = [
     pd.Series(
-        recalls_analysis_data_frame["average_irts"],
-        name=recalls_analysis_data_frame["average_irts"].iloc[-1],
+        recalls_analysis_data_frame["unique_irt"],
+        name=recalls_analysis_data_frame["unique_recalls_cum_sum"].iloc[-1],
     )
     for recalls_analysis_data_frame in recalls_analysis_data_frames_all
 ]
 
 #%%
+indexed = [
+    pd.Series(
+        series.values[series.values.nonzero()[0]],
+        name=series.name
+    )
+    for series in indexed
+]
+#%%
+# indexed = [series.reset_index(drop=True) for series in indexed]
+
+#%%
+# indexed_reduced = [
+#     series[series.nonzero()[0]] for series in indexed
+# ]
+
+#%%
 
 spam = pd.DataFrame(indexed)
 
-#%%dd
 
 # ["transitions_cum_sum",
 # "average_irts"  # y
@@ -76,9 +91,13 @@ spam = pd.DataFrame(indexed)
 #%%
 
 eggs = spam.groupby(by=spam.index).sum().reset_index(drop=True)
+#%%
+eggs /= len(recalls_analysis_data_frames_all)
 eggs.index += 1
-eggs.index.name = "average_irts"
-
+eggs.index.name = "average_irt_unique_transition"
+#%%
+eggerino = eggs.dropna(axis=1, how="all")  # change me to replace by 0s
+eggerino = eggerino.loc[:, (eggerino != 0).any(axis=0)]  # Drop column only 0
 #%%
 # pd.concat([eggs], keys=['foo'], names=['Firstlevel'])
 
@@ -188,11 +207,42 @@ branches_plot_data["average_irts"] = (
 
 #%%
 
-a = pd.melt(eggs, )
+a = pd.melt(eggs,)
 
 #%%
 
-for num_unique_recalls in 
-# sns.lineplot(x="new_recall_jumps", y="average_irts", data=branches_plot_data)
-sns.lineplot(data=eggs)
+counts_distribution = recalls_analysis_data_frames_all[0]
+for idx in range(len(recalls_analysis_data_frames_all)):
+    if idx == 0:
+        continue
+    counts_distribution = counts_distribution.append(
+        recalls_analysis_data_frames_all[idx]
+    )
 
+#%%
+counts_series = counts_distribution["irt"]
+counts_series = counts_series[counts_series != 0].value_counts()
+
+
+#%%
+
+data = eggs.loc[1]
+non_zeros = eggs.loc[1].nonzero()[0]
+data = data[non_zeros]
+
+#%%
+
+for num_unique_recalls in list(eggerino.index):
+    data = eggerino.loc[num_unique_recalls]
+    # non_zeros = eggs.loc[num_unique_recalls].nonzero()[0]
+    # data = data[non_zeros]
+    # # data.index = np.arange(num_unique_recalls + 1)
+    # data = data.reset_index(drop=True)   # print(data)
+    # print(data)
+    sns.lineplot(data=data)
+# sns.lineplot(x="new_recall_jumps", y="average_irts", data=branches_plot_data)
+# sns.lineplot(data=)
+
+
+
+# %%

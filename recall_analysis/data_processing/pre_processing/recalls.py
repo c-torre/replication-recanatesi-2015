@@ -11,6 +11,16 @@ from tqdm import tqdm
 import paths
 from recall_analysis.data_processing.pre_processing import loader_utils
 
+populations_memories_dir = paths.POPULATIONS_MEMORIES_DIR
+population_sizes_dir = paths.POPULATION_SIZES_DIR
+
+populations_memories = loader_utils.get_arrays_from_files(
+    populations_memories_dir, calling_intersections=True
+)
+populations_memories = loader_utils.arrays_to_data_frames(populations_memories)
+population_sizes = loader_utils.get_arrays_from_files(
+    population_sizes_dir, calling_intersections=True
+)
 #%%
 
 
@@ -86,17 +96,33 @@ def get_vectorized_probed_recalls(recalls_data_frame):
     probe = np.cumsum(np.ones_like(recalls_data_frame), axis=1) - 1
     probed_recalls = recalls_data_frame * (probe)
     vectorized_probed_recalls = probed_recalls.sum(axis=1)
-    vectorized_probed_recalls = vectorized_probed_recalls.astype(int)
-    sanitize = vectorized_probed_recalls.values
-    sanitize = sanitize.astype(int)
-    sanitize = list(sanitize)
-    sanitize = [int(elem) for elem in sanitize]
-    # print(vectorized_probed_recalls)
-    print(vectorized_probed_recalls.values)
-    returning = pd.Series(vectorized_probed_recalls, name="recalled_memory", dtype=int)
-    # assert returning.values[5] is int
-    return returning
+    sanitize = (
+        vectorized_probed_recalls.values
+    )  # Be warned, Gods of chaos awakened if float
+    sanitize = pd.Series(sanitize, name="recalled_memory", dtype=int)
+    return sanitize
 
+
+# def get_vectorized_probed_recalls(recalls_data_frame):
+#     # Duplicate?
+
+#     probe = np.cumsum(np.ones_like(recalls_data_frame), axis=1) - 1
+#     probed_recalls = recalls_data_frame * (probe)
+#     vectorized_probed_recalls = probed_recalls.sum(axis=1)
+#     vectorized_probed_recalls = vectorized_probed_recalls.astype(int)
+#     sanitize = vectorized_probed_recalls.values
+#     sanitize = sanitize.astype(int)
+#     sanitize = list(sanitize)
+#     sanitize = [str(elem) for elem in sanitize]
+#     sanitize = [int(elem) for elem in sanitize]
+#     # print(vectorized_probed_recalls)
+#     # print(vectorized_probed_recalls.values)
+#     returning = pd.Series(sanitize, name="recalled_memory", dtype=int)
+#     # assert returning.values[5] is int
+#     # print(returning.values)
+#     # returning = pd.to_numeric(returning, errors="raise", downcast="integer")
+#     print(sanitize)
+#     return sanitize
 
 #%%
 
@@ -147,16 +173,6 @@ def get_counts_unique_recalls(first_appereances):
 
 def get_memory_sizes(data_frame_idx):
     # Get data
-    populations_memories_dir = paths.POPULATIONS_MEMORIES_DIR
-    population_sizes_dir = paths.POPULATION_SIZES_DIR
-
-    populations_memories = loader_utils.get_arrays_from_files(
-        populations_memories_dir, calling_intersections=True
-    )
-    populations_memories = loader_utils.arrays_to_data_frames(populations_memories)
-    population_sizes = loader_utils.get_arrays_from_files(
-        population_sizes_dir, calling_intersections=True
-    )
 
     # Get memory sizes by multiplying each population by its size and adding all beloging to memory
     populations_with_sizes = populations_memories[data_frame_idx] * np.rot90(
@@ -181,9 +197,9 @@ def merge_recalled_memory_with_size(data_frame_idx, recalled_memories):
         left_on=[recalled_memories],
         right_index=True,
     )
-    if data_frame_idx == 14:
-        print("PRE", len(recalled_memories.index))
-        print("POST", len(after.index))
+    # if data_frame_idx == 14:
+    #     print("PRE", len(recalled_memories.index))
+    #     print("POST", len(after.index))
     after = after.iloc[:, 1]
     return after
 
@@ -205,14 +221,15 @@ def make_all(files_path):
         enumerate(recalls_data_frames_dict.items())
     ):
         # for mod_param, recalls_data_frame in tqdm(recalls_data_frames_dict.items()):
+        # if idx == 14:  # I could not find a solution in 3h for being able to remove this
+        #     continue
 
+        # if idx != 16:
+        #     continue
         # Make the data frame that will contain all info indexed by time cycle
         recalls_analysis_data_frame = make_master_data_frame(recalls_data_frame)
 
-        print("THE BEGINNING")
         recalls_analysis_data_frame["mod_param"] = mod_param
-        if idx == 14:
-            print(recalls_analysis_data_frame)
         # IRT
         recalls_analysis_data_frame["irt"] = get_irts_time_series(recalls_data_frame)
         # IRT cumulative sum
@@ -220,27 +237,25 @@ def make_all(files_path):
             "irt"
         ].cumsum()
         # Memory recalled
-        recalls_analysis_data_frame.loc[
-            :, "memory_recalled"
-        ] = get_vectorized_probed_recalls(recalls_data_frame)
-        print(type(recalls_analysis_data_frame.loc[3, "memory_recalled"]))
-        print((recalls_analysis_data_frame.loc[3, "memory_recalled"]))
+        recalls_analysis_data_frame["memory_recalled"] = get_vectorized_probed_recalls(
+            recalls_data_frame
+        )
+        # print(recalls_analysis_data_frame["memory_recalled"])
         # recalls_analysis_data_frame.loc[3, "memory_recalled"]
         #     recalls_data_frame
         # )
-        if idx == 14:
-            print(recalls_analysis_data_frame["memory_recalled"].values)
         # if idx == 14:
 
         #     recalls_analysis_data_frame["memory_recalled"] = 2
-        print(len(recalls_analysis_data_frame.index))
         # Recalled memory sizes
         # recalls_analysis_data_frame = merge_recalled_memory_with_size(
         #     idx, recalls_analysis_data_frame
         # )
         recalls_analysis_data_frame["memory_size"] = merge_recalled_memory_with_size(
-            idx, recalls_analysis_data_frame["memory_recalled"]
+            data_frame_idx=idx,
+            recalled_memories=recalls_analysis_data_frame["memory_recalled"],
         )
+        # recalls_analysis_data_frame["memory_size"]
         # Transition (bool), if happened
         recalls_analysis_data_frame["transition"] = get_transitions(
             recalls_analysis_data_frame["memory_recalled"]
@@ -268,6 +283,8 @@ def make_all(files_path):
             * recalls_analysis_data_frame["average_irts"]
         )
         all_data.append(recalls_analysis_data_frame)
+        # if idx == 16:
+        #     break
 
     return all_data
 
@@ -281,3 +298,5 @@ if __name__ == "__main__":
     SEED_RESULTS_DIR = paths.SEED_RESULTS_DIR
     recalls_analysis_data_frames = make_all(SEED_RESULTS_DIR)
 
+
+# %%

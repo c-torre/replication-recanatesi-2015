@@ -126,4 +126,4 @@ def plot_cumulative_recalled_memories(data):
 
 
 if __name__ == "__main__":
-    plot_cumulative_recalled_memories(plot_cumulative_recalled_memories)
+    plot_cumulative_recalled_memories(counts_series)
