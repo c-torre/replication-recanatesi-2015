@@ -86,8 +86,16 @@ def get_vectorized_probed_recalls(recalls_data_frame):
     probe = np.cumsum(np.ones_like(recalls_data_frame), axis=1) - 1
     probed_recalls = recalls_data_frame * (probe)
     vectorized_probed_recalls = probed_recalls.sum(axis=1)
-    print(vectorized_probed_recalls)
-    return vectorized_probed_recalls
+    vectorized_probed_recalls = vectorized_probed_recalls.astype(int)
+    sanitize = vectorized_probed_recalls.values
+    sanitize = sanitize.astype(int)
+    sanitize = list(sanitize)
+    sanitize = [int(elem) for elem in sanitize]
+    # print(vectorized_probed_recalls)
+    print(vectorized_probed_recalls.values)
+    returning = pd.Series(vectorized_probed_recalls, name="recalled_memory", dtype=int)
+    # assert returning.values[5] is int
+    return returning
 
 
 #%%
@@ -212,9 +220,16 @@ def make_all(files_path):
             "irt"
         ].cumsum()
         # Memory recalled
-        recalls_analysis_data_frame["memory_recalled"] = get_vectorized_probed_recalls(
-            recalls_data_frame
-        )
+        recalls_analysis_data_frame.loc[
+            :, "memory_recalled"
+        ] = get_vectorized_probed_recalls(recalls_data_frame)
+        print(type(recalls_analysis_data_frame.loc[3, "memory_recalled"]))
+        print((recalls_analysis_data_frame.loc[3, "memory_recalled"]))
+        # recalls_analysis_data_frame.loc[3, "memory_recalled"]
+        #     recalls_data_frame
+        # )
+        if idx == 14:
+            print(recalls_analysis_data_frame["memory_recalled"].values)
         # if idx == 14:
 
         #     recalls_analysis_data_frame["memory_recalled"] = 2
@@ -223,8 +238,6 @@ def make_all(files_path):
         # recalls_analysis_data_frame = merge_recalled_memory_with_size(
         #     idx, recalls_analysis_data_frame
         # )
-        if idx == 14:
-            return recalls_analysis_data_frame
         recalls_analysis_data_frame["memory_size"] = merge_recalled_memory_with_size(
             idx, recalls_analysis_data_frame["memory_recalled"]
         )

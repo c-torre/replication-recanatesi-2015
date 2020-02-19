@@ -1,3 +1,4 @@
+#%%
 import os
 import pickle
 import numpy as np
@@ -40,7 +41,9 @@ data = [
     for recalls_analysis_data_frame in recalls_analysis_data_frames_all
 ]
 #%%
-data_plot = [data_series.loc[["mod_param", "unique_recalls_cum_sum"]] for data_series in data]
+data_plot = [
+    data_series.loc[["mod_param", "unique_recalls_cum_sum"]] for data_series in data
+]
 
 
 #%%
@@ -50,11 +53,11 @@ data_good = pd.DataFrame(data_plot)
 
 
 data_int = data_good["mod_param"].values
-iterator = np.nditer(data_int, flags=["refs_ok"], op_flags=["readwrite"])
+# iterator = np.nditer(data_int, flags=["refs_ok"], op_flags=["readwrite"])
 
-with iterator:
-    for i in iterator:
-        i[...] = int(str(i)[1:])
+# with iterator:
+#     for i in iterator:
+#         i[...] = int(str(i)[1:])
 
 data_good["mod_param"] = data_int
 #%%
@@ -71,3 +74,4 @@ def plot_recalled_memories_cont_forth(data):
 
 if __name__ == "__main__":
     plot_recalled_memories_cont_forth(data_good)
+
