@@ -1,28 +1,45 @@
+# #%%
+# import os
+# import pickle
+# import numpy as np
+# import pandas as pd
+# import seaborn as sns
+
+# import recall_analysis.data_processing.main
+# import paths
+
+# import paths
+# from recall_analysis.data_processing.pre_processing import loader_utils
+
+# # POPULATIONS_MEMORIES_DIR = paths.POPULATIONS_MEMORIES_DIR
+# # POPULATION_SIZES_DIR = paths.POPULATION_SIZES_DIR
+# # file_pkl = os.path.join(paths.BKP_DIR, "combined_recalls_intersections.p")
+
+# # populations_memories = loader_utils.get_arrays_from_files(POPULATIONS_MEMORIES_DIR)
+# # populations_memories = loader_utils.arrays_to_data_frames(populations_memories)
+# # population_sizes = loader_utils.get_arrays_from_files(POPULATION_SIZES_DIR)
+
+# # if not os.path.exists(file_pkl):
+# #     recall_analysis.data_processing.main.make_pickles()
+
+# combined_recalls_intersections_all = pickle.load(open(file_pkl, "rb"))
 #%%
 import os
 import pickle
+
 import numpy as np
-import pandas as pd
 import seaborn as sns
 
+import paths
 import recall_analysis.data_processing.main
-import paths
 
-import paths
-from recall_analysis.data_processing.pre_processing import loader_utils
-
-POPULATIONS_MEMORIES_DIR = paths.POPULATIONS_MEMORIES_DIR
-POPULATION_SIZES_DIR = paths.POPULATION_SIZES_DIR
-file_pkl = os.path.join(paths.BKP_DIR, "combined_recalls_intersections.p")
-
-populations_memories = loader_utils.get_arrays_from_files(POPULATIONS_MEMORIES_DIR)
-populations_memories = loader_utils.arrays_to_data_frames(populations_memories)
-population_sizes = loader_utils.get_arrays_from_files(POPULATION_SIZES_DIR)
+file_pkl = os.path.join(paths.BKP_DIR, "recalls_frames_seeds.p")
 
 if not os.path.exists(file_pkl):
     recall_analysis.data_processing.main.make_pickles()
 
-combined_recalls_intersections_all = pickle.load(open(file_pkl, "rb"))
+recalls_analysis_data_frames_all = pickle.load(open(file_pkl, "rb"))
+
 
 
 #%%
