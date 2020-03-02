@@ -13,6 +13,7 @@ NUM_NEURONS = 100000
 NUM_MEMORIES = 16
 T_STEP = 0.01
 T_TOT = 10
+T_SIMULATED = int(T_TOT / T_STEP)
 # Hebbian rule
 EXCITATION = 13_000
 SPARSITY = 0.1
@@ -22,17 +23,22 @@ GAIN_EXP = 2 / 5
 # Inhibition
 SIN_MIN = 0.7
 SIN_MAX = 1.0
+# Noise
+NOISE_STD = 65
 
 #%%
 
 neurons_encoding_memories = np.random.choice(
     [0, 1], size=(NUM_NEURONS, NUM_MEMORIES), p=[1 - SPARSITY, SPARSITY]
 )
+
 #%%
 
 populations_encoding_memories, population_sizes = np.unique(
     [tuple(i) for i in neurons_encoding_memories], axis=0, return_counts=True
 )
+
+num_populations = populations_encoding_memories.shape[0]
 
 #%%
 
@@ -64,25 +70,74 @@ inhibition = sine_vector * EXCITATION / NUM_NEURONS  # is there a '-' missing?
 
 #%%
 
+#%% Noise
+
+noise = np.random.randn(T_SIMULATED, num_populations)
+
+#%%
+
+noise *= NOISE_STD / (
+    T_STEP * population_sizes[None, :]
+)  # The standard deviation is applied through multiplication, mean is 0
+
+#%%
+
 # # %% Allocate weights tensor; this may be RAM-heavy hahah nope
 # weights = np.multiply((connectivity_regular[None, :, :]).astype(np.float16),
 # (inhibition[:, None, None]).astype(np.float16))
 
-population_fractions = population_sizes / NUM_NEURONS
+population_fractions = (
+    population_sizes / NUM_NEURONS
+)  # Sv seems not used in origina code
+
 #%%
 
-firing_rates_init = populations_encoding_memories[:, 6]
+# memory_init = np.random.randint(NUM_MEMORIES)  USE THIS
+memory_init = 7
+firing_rates_init = populations_encoding_memories[:, memory_init]
+
 #%% Computation for each time step
-# activations = firing_rates_init**0.4  # ACTIVATIONS NOT NEEDED FIRST TIME STEP
+
+activations = firing_rates_init**0.4  # ACTIVATIONS NOT NEEDED FIRST TIME STEP for **0.4
 sized_activations = firing_rates_init * population_fractions
 
 #%%
-first_weights = connectivity_regular * inhibition[0]
+
+def activation
+
+
+#%% loop
+
+weights_iter = connectivity_regular * inhibition[0]
+connectivity_component = np.dot(sized_activations, weights_iter)
+prev_currents = firing_rates_init
+noise_iter = noise[0]
+#%%
+currents_this_step = prev_currents + connectivity_component + noise_iter
+#%% ##
+currents = np.zeros((T_SIMULATED, num_populations))
+#%%
+with np.nditer(curents, flags=["multi_index"], op_flags=["readwrite"]) as it:
+    for elem in it:#tqdm(it):
+        if it
+        # if it == 0:
+        #     continue
+        # elem[...] += currents[it.index]
+        print(it.multi_index[0])
+        stored = it.multi_index[0]
 #%%
 
-#%%
-np.dot(firing_rates_init, first_weights)
-###
+for num_iter, currents_iter in enumerate(tqdm(currents)):
+    if num_iter == 0:
+        currents[num_iter, :] = firing_rates_init
+    weights_iter = connectivity_regular * inhibition[num_iter]
+    prev_currents = currents[num_iter-1,:]
+    activations = (prev_currents > 0).astype(int)**0.4
+    sized_activations = prev_currents * population_sizes
+    connectivity_component = np.dot(sized_activations, weights_iter)
+    currents[num_iter, :] = prev_currents
+    if num_iter == 100:
+        break
 
 #%%
 
