@@ -28,6 +28,7 @@ import os
 import pickle
 
 import numpy as np
+import pandas as pd
 import seaborn as sns
 
 import paths
@@ -41,6 +42,31 @@ if not os.path.exists(file_pkl):
 recalls_analysis_data_frames_all = pickle.load(open(file_pkl, "rb"))
 
 
+#%%
+
+all_recalled = pd.concat([
+    recalls_analysis_data_frame["memory_size"]
+    for recalls_analysis_data_frame in recalls_analysis_data_frames_all
+]).value_counts()
+
+#%%
+all_recalled /= all_recalled.max()
+#%%
+
+sns.scatterplot(data=all_recalled)
+
+#%%
+all_recalled.name = "unique_recalls"
+# #%%
+
+# all_needed_sizes = pd.concat(
+#     [
+#         recalls_analysis_data_frame["memory_size"]
+#         for recalls_analysis_data_frame in recalls_analysis_data_frames_all
+#     ]
+# )
+#%%
+with_sizes = pd.merge(left=all_recalled)
 
 #%%
 
