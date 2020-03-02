@@ -15,7 +15,7 @@ T_STEP = 0.01
 T_TOT = 10
 # Hebbian rule
 EXCITATION = 13_000
-SPARSITY = 0.0
+SPARSITY = 0.1
 # Gain
 GAIN_THRESHOLD = 0
 GAIN_EXP = 2 / 5
@@ -68,6 +68,21 @@ inhibition = sine_vector * EXCITATION / NUM_NEURONS  # is there a '-' missing?
 # weights = np.multiply((connectivity_regular[None, :, :]).astype(np.float16),
 # (inhibition[:, None, None]).astype(np.float16))
 
+population_fractions = population_sizes / NUM_NEURONS
+#%%
+
+firing_rates_init = populations_encoding_memories[:, 6]
+#%% Computation for each time step
+# activations = firing_rates_init**0.4  # ACTIVATIONS NOT NEEDED FIRST TIME STEP
+sized_activations = firing_rates_init * population_fractions
+
+#%%
+first_weights = connectivity_regular * inhibition[0]
+#%%
+
+#%%
+np.dot(firing_rates_init, first_weights)
+###
 
 #%%
 
