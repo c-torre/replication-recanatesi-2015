@@ -374,7 +374,7 @@ def transitions_rank_via_intersections_size(ranked_transitions, probability):
 
     plt.close(fig)
 
-def recall_performance_cont_forth(cont_forth, recalls)
+def recall_performance_cont_forth(cont_forth, recalls):
 
     fig, axis = plt.subplots()
 
