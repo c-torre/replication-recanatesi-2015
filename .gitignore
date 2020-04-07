@@ -138,5 +138,5 @@ bkp/
 original_code/
 
 # Pickle
-.p
-.pkl
+*.p
+*.pkl
