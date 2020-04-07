@@ -136,3 +136,7 @@ bkp/
 
 # Avoid matprison files
 original_code/
+
+# Pickle
+.p
+.pkl
