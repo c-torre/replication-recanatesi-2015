@@ -21,7 +21,7 @@ T_DECAY = 0.01
 # Time
 T_STEP = 0.001
 T_TOT = 5
-T_SIMULATED = int(T_TOT / T_STEP)
+T_SIMULATED = T_TOT // T_STEP
 # Hebbian rule
 EXCITATION = 13_000
 SPARSITY = 0.1
@@ -303,12 +303,12 @@ rate_avg = proj_m @ rates / np.diagonal(similarity)[:, None]
 
 #%%
 
-sns.heatmap(rate_avg)
-#%%
+fig_attractors = sns.heatmap(rate_avg)
+plt.show(fig_attractors)
 
 to_line_plot = np.rot90(rate_avg[:, :])  # pd.DataFrame(np.rot90(rate_avg[:, :100]))
-sns.lineplot(data=to_line_plot, dashes=False, palette="colorblind")
+fig_activities = sns.lineplot(data=to_line_plot, dashes=False, palette="colorblind")
+plt.show(fig_activities)
 
 
 
-# %%

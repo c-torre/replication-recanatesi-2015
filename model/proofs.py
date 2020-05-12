@@ -36,7 +36,7 @@ NUM_POINTS = T_TOT * 100
 
 ITERS = 3  # CHANGE ME
 
-#%% a
+#%%
 
 
 def get_log_int_sizes():
@@ -230,8 +230,7 @@ connectivity_reg_, connectivity_back_, connectivity_forth_ = get_connectivities(
 )
 
 
-#%% Recanatesi's fun park
-
+#%%
 
 # Log_int as named data frame
 log_int_df = pd.DataFrame(log_int_).astype(int)
