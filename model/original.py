@@ -14,14 +14,14 @@ np.random.seed(123)
 mpstyle.use("fast")
 
 
-NUM_NEURONS = 1#0 ** 5
+NUM_NEURONS = 10 ** 5
 NUM_MEMORIES = 16
 # Activation
 T_DECAY = 0.01
 # Time
 T_STEP = 0.001
 T_TOT = 5
-T_SIMULATED = int(T_TOT / T_STEP)
+T_SIMULATED = T_TOT // T_STEP
 # Hebbian rule
 EXCITATION = 13_000
 SPARSITY = 0.1
@@ -75,13 +75,13 @@ def get_log_int_sizes():
         population_sizes = np.hstack(
             ((population_sizes - new_sizes), new_sizes)
         )  # R: updates the sizes
-        print("pop sizes:", population_sizes)
+        # print("pop sizes:", population_sizes)
 
         log_int = build_logical(log_int)
         
-        print("=" * 10)
-        if i == 3:
-            break
+        # print("=" * 10)
+        # if i == 3:
+        #     break
 
 
     # (65536,), (17, 65536)
@@ -221,77 +221,56 @@ def evolv(
     return result
 
 
-# def main():
+def main():
 
 
-# (65536,), (17, 65536)
-population_sizes_, log_int_ = get_log_int_sizes()
-# (1,)
-num_pops = population_sizes_.shape[0]  # R: size of the actual simulated network
+    # (65536,), (17, 65536)
+    population_sizes_, log_int_ = get_log_int_sizes()
+    # (1,)
+    num_pops = population_sizes_.shape[0]  # R: size of the actual simulated network
 
-# 3 x (65536, 16)
-connectivity_reg_, connectivity_back_, connectivity_forth_ = get_connectivities(
-    log_int_
-)
-
-
-
-#%% Recanatesi's fun park
-
-
-# Log_int as named data frame
-log_int_df = pd.DataFrame(log_int_).astype(int)
-log_int_df.index.name = "memories v"
-log_int_df.columns.name = "pops >"
-print(log_int_df)
- 
-#%%
-# How many ones and zeros per pop (column)
-pop_ones = log_int_df.sum()
-pop_zeros = log_int_df.shape[0]- 1 - pop_ones
-
-# Binomial distribution of zeros adjusted by number of ones
-probs = pd.Series(pop_zeros.map(lambda x:sum(np.random.binomial(x, 0.1, 50000) == 0)/50000), name="proba_bino")
-probs /= 10**pop_ones
-pop_sizes = pd.Series(population_sizes_, name="pop_sizes")
-compared = pd.DataFrame((probs, pop_sizes))
-print(compared)
-
-#%%
-
-# (500,), (5001,), (500,)
-it_rec, time, t_rates = prepare_times()
-
-# # (65536, 16)
-# rates = np.zeros((num_pops, len(it_rec)))
-
-ind_t = 0
-
-# (65536,)
-currents = get_initial_currents(NUM_MEMORIES, connectivity_reg_.copy())
-
-for it in tqdm(range(len(time))):
-    currents += (
-        evolv(
-            time[it],
-            currents,
-            population_sizes_,
-            connectivity_reg_.copy(),
-            connectivity_back_.copy(),
-            connectivity_forth_.copy(),
-        )
-        * T_STEP
+    # 3 x (65536, 16)
+    connectivity_reg_, connectivity_back_, connectivity_forth_ = get_connectivities(
+        log_int_
     )
-    if it in it_rec:
-        rates[:, ind_t] = gain(currents)
-        ind_t += 1
-    if it == 1:
-        break
-
-# (65536,), (65536, 500)
-# return currents, rates
 
 
+    #%%
+
+    # (500,), (5001,), (500,)
+    it_rec, time, t_rates = prepare_times()
+
+    # (65536, 16)
+    rates = np.zeros((num_pops, len(it_rec)))
+
+    ind_t = 0
+
+    # (65536,)
+    currents = get_initial_currents(NUM_MEMORIES, connectivity_reg_.copy())
+
+    for it in tqdm(range(len(time))):
+        currents += (
+            evolv(
+                time[it],
+                currents,
+                population_sizes_,
+                connectivity_reg_.copy(),
+                connectivity_back_.copy(),
+                connectivity_forth_.copy(),
+            )
+            * T_STEP
+        )
+        if it in it_rec:
+            rates[:, ind_t] = gain(currents)
+            ind_t += 1
+        # if it == 1:
+        #     break
+
+    # (65536,), (65536, 500)
+    return currents, rates, connectivity_reg_, population_sizes_
+
+
+currents, rates, connectivity_reg_, population_sizes_ = main()
 # %%
 pickle.dump(rates, open(os.path.join(".", "rates.p"), "wb"))
 #%%
@@ -324,8 +303,12 @@ rate_avg = proj_m @ rates / np.diagonal(similarity)[:, None]
 
 #%%
 
-sns.heatmap(rate_avg)
-#%%
+fig_attractors = sns.heatmap(rate_avg)
+plt.show(fig_attractors)
 
 to_line_plot = np.rot90(rate_avg[:, :])  # pd.DataFrame(np.rot90(rate_avg[:, :100]))
-sns.lineplot(data=to_line_plot, dashes=False, palette="colorblind")
+fig_activities = sns.lineplot(data=to_line_plot, dashes=False, palette="colorblind")
+plt.show(fig_activities)
+
+
+

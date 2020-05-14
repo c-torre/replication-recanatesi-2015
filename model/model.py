@@ -155,7 +155,7 @@ def main(arg):
     # === Other pre-computations ===
     num_iter = int(T_CYCLES / T_STEP)
     # relative_excitation = excitation / NUM_NEURONS
-    time_tot = T_STEP / T_DECAY
+    t_step_decay = T_STEP / T_DECAY
 
     # Inhibition
     sine_wave = np.zeros(num_iter)
@@ -291,7 +291,7 @@ def main(arg):
                     weights[:] * fraction_neurons_pop * firing_rates[:]
                 )
 
-                current[populations_memories] += time_tot * (
+                current[populations_memories] += t_step_decay * (
                     -current[populations_memories]
                     + input_other_pop
                     + noise[populations_memories, time]
