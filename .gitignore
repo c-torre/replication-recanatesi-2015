@@ -130,6 +130,7 @@ dmypy.json
 
 # Fig dir
 fig/
+res.png
 
 # Backup dir
 bkp/
@@ -140,3 +141,4 @@ original_code/
 # Pickle
 *.p
 *.pkl
+
