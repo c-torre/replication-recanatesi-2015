@@ -27,7 +27,7 @@ You should also change the where to save the simulations.
 Paths in `paths.py` are automatically recognized for plotting.
 
 Job files for the `slurm` workload manager are included.
-`SBATCH` parameters give an idea of the computational cost, and may be tweaked for different cluster requirements.
+`SBATCH` parameters give an idea of the resource requirements, and may be tweaked for different cluster requirements.
 `run.sh` adds some convenience and requires an `out` directory at project root.
 
 To start simulating networks in parallel:
