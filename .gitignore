@@ -121,3 +121,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# vscodium
+.vscode
+
+# simulation files
+*.npy

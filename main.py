@@ -1,6 +1,6 @@
 """
 <[Re] Recanatesi (2015). Neural Network Model of Memory Retrieval>
-Copyright (C) <2019>  <de la Torre-Ortiz C, Nioche A>
+Copyright (C) <2020>  <de la Torre-Ortiz C, Nioche A>
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -13,229 +13,269 @@ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
-along with this program.  If not, see <https://www.gnu.org/licenses/>.
+along with this program. If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os
 
+import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
+
 from tqdm import tqdm
 
-import tools.plots as plot
-import tools.sine_wave
+import paths
 
-FIG_DIR = "fig"
-os.makedirs(FIG_DIR, exist_ok=True)
+PARAMETERS_DIR = paths.PARAMETERS_DIR
+PATTERNS_DIR = None  # paths. ...
+RECALLS_DIR = None  # paths. ...
 
-np.seterr(all="raise")
+assert (
+    PATTERNS_DIR is not None and RECALLS_DIR is not None
+), "Please choose a saving directory"
 
-np.random.seed(123)
+try:
+    job_id = int(
+        os.getenv("SLURM_ARRAY_TASK_ID")
+    )  # Changes seed per cluster simulation
+except:
+    job_id = 0  # Default seed for non-cluster use
 
-# === Parameters ===
-# Architecture
-num_neurons = 100000
-num_memories = 16
+np.random.seed(job_id)
+
+PARAMETERS_DF = pd.read_csv(os.path.join(PARAMETERS_DIR, "simulation.csv"), index_col=0)
+
+NUM_NEURONS = PARAMETERS_DF.loc["num_neurons"]
+NUM_MEMORIES = PARAMETERS_DF.loc["num_memories"]
 # Activation
-t_decay = 0.01
-# Gain
-threshold = 0
-gain_exp = 2 / 5
-# Hebbian rule
-excitation = 13000
-sparsity = 0.01
-# Inhibition
-sin_min = 0.7
-sin_max = 1.06
-t_oscillation = 1
-phase_shift = 0.75
-# Short term association
-cont_forth = 1500
-cont_back = 400
+T_DECAY = PARAMETERS_DF.loc["t_decay"]
 # Time
-t_tot = 14
-t_step = 0.001
-# Noise
-noise_var = 65
-# Initialization
-init_rate = 1
-first_memory = 7
-# Replication parameters
-param_noise = 10
-param_current = 4.75
-# ==================
-
-
-print("<[Re] Recanatesi (2015)>  Copyright (C) <2019>\n"
-      "<de la Torre-Ortiz C, Nioche A>\n"
-      "This program comes with ABSOLUTELY NO WARRANTY.\n"
-      "This is free software, and you are welcome to redistribute it\n"
-      "under certain conditions; see the 'LICENSE' file for details.\n")
-
-# Compute memory patterns
-print("Computing memory patterns and neuron populations...")
-memory_patterns = np.random.choice([0, 1], p=[1 - sparsity, sparsity],
-                                   size=(num_neurons, num_memories))
-
-# Compute populations
-pop, neurons_per_pop = np.unique([tuple(i) for i in memory_patterns],
-                                 axis=0, return_counts=True)
-
-num_pops = len(pop)
-
-neurons_encoding = [(pop[:, mu] == 1).nonzero()[0] for mu in
-                    range(num_memories)]
-
-# === Other pre-computations ===
-num_iter = int(t_tot / t_step)
-relative_excitation = excitation / num_neurons
-time_param = t_step / t_decay
-
+T_STEP = PARAMETERS_DF.loc["t_step"]
+T_TOT = PARAMETERS_DF.loc["t_tot"]
+T_SIMULATED = int(T_TOT // T_STEP)
+# Hebbian rule
+EXCITATION = PARAMETERS_DF.loc["excitation"]
+SPARSITY = PARAMETERS_DF.loc["sparsity"]
+# Gain
+GAIN_THRESHOLD = PARAMETERS_DF.loc["gain_threshold"]
+GAIN_EXP = PARAMETERS_DF.loc["gain_exp"]
 # Inhibition
-sine_wave = np.zeros(num_iter)
-
-# Connectivity
-forward_cont = np.arange(num_memories - 1)
-backward_cont = np.arange(1, num_memories)
-
+SIN_MIN = PARAMETERS_DF.loc["sin_min"] * EXCITATION
+SIN_MAX = PARAMETERS_DF.loc["sin_max"] * EXCITATION
 # Noise
-noise = np.zeros((num_pops, num_iter))
+NOISE_VAR = PARAMETERS_DF.loc["noise_var"]
+# Forward and backward contiguity
+CONT_FORTH = PARAMETERS_DF.loc["cont_forth"] / NUM_NEURONS
+CONT_BACK = PARAMETERS_DF.loc["cont_back"] / NUM_NEURONS
+# For parameter sweeps
+# CONT_FORTH = get_simulation_range_param("cont_forth", job_id, 100)
+# CONT_FORTH = get_simulation_range_param("cont_forth_low", job_id, 100)
+# NOISE_VAR = get_simulation_range_param("noise_var", job_id, 100)
 
-# Neuron dynamics
-firing_rates = np.zeros([num_pops])
-current = np.zeros([num_pops])
-average_firing_rates_per_memory = np.zeros((num_memories, num_iter))
-currents = np.zeros((num_pops, num_iter))
-currents_memory = np.zeros((num_memories, num_iter))
-# ==============================
 
-# Compute sine wave
-print("Calculating inhibition values...")
+def get_simulation_range_param(sim_mode: str, job_id: int, num_points: int) -> float:
+    """Give single simulation range parameter"""
 
-for t in range(num_iter):
-    sine_wave[t] = tools.sine_wave.sinusoid(
-        min_=sin_min,
-        max_=sin_max,
-        period=t_oscillation,
-        t=t,
-        phase_shift=phase_shift * t_oscillation,
-        dt=t_step
+    def check_simulation_mode(sim_mode: str) -> None:
+        """Sanitize parameter input for simulation mode"""
+
+        assert sim_mode in ["seed", "cont_forth", "cont_forth_low", "noise_var"]
+
+    def prepare_parameter_ranges() -> pd.DataFrame:
+        """Load parameters CSV and normalize contiguity"""
+
+        # Load CSV
+        ranges = pd.read_csv(os.path.join(PARAMETERS_DIR, "ranges.csv"), index_col=0)
+        # Normalize contiguity
+        ranges.loc["cont_forth"] /= NUM_NEURONS
+        ranges.loc["cont_forth_low"] /= NUM_NEURONS
+
+        return ranges
+
+    def get_linespace_parameters(
+        sim_mode: str, param_ranges_df: pd.DataFrame, num_points: int,
+    ) -> np.array:
+        """Return simulation parameters"""
+
+        # Prepare variables
+        min_ = param_ranges_df.loc[sim_mode, "min_"]
+        max_ = param_ranges_df.loc[sim_mode, "max_"]
+
+        # Check user input
+        assert "min_" in param_ranges_df.columns and "max_" in param_ranges_df
+        assert max_ > min_
+        if sim_mode == "seed":
+            assert num_points == max_
+
+        return np.linspace(min_, max_, num_points)
+
+    def get_param_from_range(param_linespace: np.array, job_id: int) -> int:
+        """
+        Get one parameter value within range
+        according to job_id.
+
+        Index resets when job_id == num_points
+        num_points = 3: 0 1 2 0 1 2 0 1 2 ...
+        """
+
+        return param_linespace[job_id % len(param_linespace)]
+
+    check_simulation_mode(sim_mode)
+    ranges_df = prepare_parameter_ranges()
+    range_param = get_linespace_parameters(sim_mode, ranges_df, num_points,)
+
+    return get_param_from_range(range_param, job_id)
+
+
+def get_connectivities(log_int: np.ndarray, num_memories: int) -> np.ndarray:
+    """Make regular, forward, and backward connectivities"""
+
+    connectivity_reg = log_int.T
+    connectivity_back = np.hstack(
+        (
+            np.zeros(connectivity_reg.shape[0])[:, None],
+            connectivity_reg[:, : num_memories - 1],
+        )
+    )
+    connectivity_forth = np.hstack(
+        (connectivity_reg[:, 1:], np.zeros(connectivity_reg.shape[0])[:, None])
+    )
+    return connectivity_reg, connectivity_back, connectivity_forth
+
+
+def osc(t: float, sin_min, sin_max) -> float:
+    """Sine oscillation which drives inhibition"""
+
+    return (sin_min + sin_max) / 2 + (sin_min - sin_max) / 2 * np.sin(
+        2 * np.pi * t + np.pi / 2
     )
 
-inhibition = -sine_wave
 
-# Compute weights
-print("Computing regular, forward and backward connectivity...")
+def gain(currents_vector: np.ndarray, gain_exp: float) -> np.ndarray:
+    """Gain or activation function"""
 
-regular_connectivity = np.zeros((num_pops, num_pops))
-forward_connectivity = np.zeros((num_pops, num_pops))
-backward_connectivity = np.zeros((num_pops, num_pops))
+    adaption = np.heaviside(currents_vector, 0)
+    currents_vector *= adaption
+    return currents_vector ** gain_exp
 
-for i in tqdm(range(num_pops)):
-    for j in range(num_pops):
-        regular_connectivity[i, j] = np.sum(
-            (pop[i, :] - sparsity)
-            * (pop[j, :] - sparsity)
+
+def make_patterns(num_neurons: int, num_memories: int, sparsity: float) -> np.ndarray:
+    """Build memory neural patterns according to sparsity"""
+
+    return np.random.choice(
+        (False, True), p=[1 - sparsity, sparsity], size=(num_neurons, num_memories)
+    )
+
+
+def get_populations_and_sizes(patterns: np.ndarray) -> (np.ndarray, np.ndarray):
+    """
+    Check which neurons encode for the same memories and
+    group them into populations, saving how many neurons
+    belong to each population (population sizes).
+    """
+
+    populations, population_sizes = np.unique(
+        [tuple(i) for i in patterns], axis=0, return_counts=True
+    )
+    return populations, population_sizes
+
+
+patterns = make_patterns(NUM_NEURONS, NUM_MEMORIES, SPARSITY)
+populations, population_sizes = get_populations_and_sizes(patterns)
+num_populations = population_sizes.shape[0]
+
+connectivity_reg_, connectivity_back_, connectivity_forth_ = get_connectivities(
+    populations.T, NUM_MEMORIES
+)
+
+
+def prepare_times(t_tot: int, t_step: float):
+    """Initialize the time vectors"""
+
+    return np.arange(start=0, stop=t_tot + t_step, step=t_step)
+
+
+time = prepare_times(T_TOT, T_STEP)
+
+initial_memory = np.random.choice(range(NUM_MEMORIES))
+currents = connectivity_reg_[:, initial_memory].astype(np.float)
+
+sparsity_vect = np.ones(NUM_MEMORIES) * SPARSITY
+rates = np.zeros((num_populations, len(time)))
+
+
+def get_noise(
+    noise_var: int,
+    population_sizes: np.ndarray,
+    times: np.ndarray,
+    num_populations: int,
+) -> np.ndarray:
+    """Computes noise for all time iterations"""
+
+    std = noise_var / (population_sizes ** 0.5)
+    return std * np.random.normal(size=(len(times), num_populations))
+
+
+noise_ = get_noise(NOISE_VAR, population_sizes, time, num_populations)
+
+for it, t in tqdm(enumerate(time)):
+
+    activations = gain(currents.copy(), GAIN_EXP)
+    sized_activations = population_sizes * activations
+    total_activation = np.sum(sized_activations)
+
+    # (NUM_MEMORIES,) = (num_populations,) @ (num_populations, NUM_MEMORIES)
+    Vs = sized_activations @ connectivity_reg_
+    # (num_populations) = (num_populations, NUM_MEMORIES) @ (NUM_MEMORIES,)
+    # - (NUM_MEMORIES,) @ (NUM_MEMORIES,) - (num_populations, NUM_MEMORIES)
+    # @ (NUM_MEMORIES,) * () + (NUM_MEMORIES,) @ (NUM_MEMORIES,) * ()
+    connectivity_term = (
+        connectivity_reg_ @ Vs
+        - sparsity_vect @ Vs
+        - connectivity_reg_ @ sparsity_vect * total_activation
+        + sparsity_vect @ sparsity_vect * total_activation
+    )
+    # (num_populations,) = () * (num_populations, NUM_MEMORIES) @ (NUM_MEMORIES,)
+    # + () * (num_populations, NUM_MEMORIES) @ (NUM_MEMORIES,)
+    contiguity_term = (
+        CONT_FORTH * connectivity_forth_ @ Vs + CONT_BACK * connectivity_back_ @ Vs
+    )
+
+    sine = osc(t, SIN_MIN, SIN_MAX) / NUM_NEURONS
+
+    evolv = (
+        T_STEP
+        / T_DECAY
+        * (
+            -currents
+            + EXCITATION / NUM_NEURONS * (connectivity_term + contiguity_term)
+            - sine * total_activation
+            + noise_[it] / np.sqrt(T_STEP)
         )
+    )
 
-        forward_connectivity[i, j] = np.sum(
-            pop[i, forward_cont] *
-            pop[j, forward_cont + 1]
-        )
+    currents += evolv
+    rates[:, it] = activations
 
-        backward_connectivity[i, j] = np.sum(
-            pop[i, backward_cont] *
-            pop[j, backward_cont - 1]
-        )
-
-regular_connectivity *= excitation
-forward_connectivity *= cont_forth
-backward_connectivity *= cont_back
-inhibition *= excitation
-
-weights_without_inhibition = \
-    regular_connectivity \
-    + forward_connectivity \
-    + backward_connectivity
-
-# Compute noise
-print("Calculating uncorrelated Gaussian noise...")
-
-for pop in range(num_pops):
-    noise[pop] = \
-        np.random.normal(loc=0,
-                         scale=(noise_var * neurons_per_pop[pop]) ** 0.5,
-                         size=num_iter) / neurons_per_pop[pop] * param_noise
+proj_attr = (connectivity_reg_ * population_sizes[:, None]).T
+similarity = proj_attr @ connectivity_reg_
+rate_avg = (population_sizes * rates.T @ connectivity_reg_ / np.diagonal(similarity)).T
+file_name = f"s{job_id}-jf{int(CONT_FORTH * NUM_NEURONS)}-n{int(NOISE_VAR)}"
 
 
-# Initialize firing rates
-firing_rates[neurons_encoding[first_memory]] = init_rate
+# save recall patterns
+np.save(os.path.join(PATTERNS_DIR, file_name), similarity)
 
-# Initialize current
-c_ini = init_rate ** (1 / gain_exp) - threshold
-current[neurons_encoding[first_memory]] = c_ini
 
-# Compute neuron dynamics
-print("Computing dynamics at each time step...")
+def transform_file(rates_) -> np.ndarray:
+    rates_max = rates_[:, ::100]
+    rates_max[:, 0] = rates_[:, 1]
+    seq = np.argmax(rates_max, axis=0)
+    seq_max = np.max(rates_max, axis=0)
+    seq2 = seq * (seq_max > 15)
+    return seq2
 
-for t in tqdm(range(num_iter)):
 
-    # Update current
-    for pop in range(num_pops):
-        # Compute weights
-        weights = (weights_without_inhibition[pop, :]
-                   + inhibition[t]) / num_neurons
+# save recall sequence
+np.save(os.path.join(RECALLS_DIR, file_name), transform_file(rate_avg))
 
-        # Compute input
-        input_v = np.sum(weights[:] * neurons_per_pop[:] *
-                         firing_rates[:])
-
-        current[pop] += time_param * (
-                -current[pop] + input_v
-                + noise[pop, t])
-
-        currents[pop, t] = current[pop]
-
-    # Update firing rates
-    firing_rates[:] = 0
-    cond = (current + threshold) > 0
-    firing_rates[cond] = (current[
-                              cond] * param_current + threshold) ** gain_exp
-
-    for p in range(num_memories):
-        fr = firing_rates[neurons_encoding[p]]
-        n_corresponding = neurons_per_pop[
-            neurons_encoding[p]]
-
-        average_firing_rates_per_memory[p, t] = \
-            np.average(fr, weights=n_corresponding)
-
-        c_mu = current[neurons_encoding[p]]
-
-        currents_memory[p, t] = np.average(c_mu, weights=n_corresponding)
-
-# Plots
-print("Plotting...")
-plot.currents(currents, dt=t_step,
-              type_="population", fig_num=0)
-plot.currents(currents_memory, dt=t_step,
-              type_="memory", fig_num=1)
-
-plot.firing_rates(average_firing_rates_per_memory,
-                  dt=t_step)
-plot.attractors(average_firing_rates_per_memory,
-                dt=t_step)
-
-plot.sine_wave(sine_wave, dt=t_step)
-plot.inhibition(inhibition, dt=t_step)
-
-plot.weights(weights_without_inhibition,
-             type_="no_inhibition", fig_num=0)
-plot.weights(regular_connectivity,
-             type_="regular", fig_num=1)
-plot.weights(forward_connectivity,
-             type_="forward", fig_num=2)
-plot.weights(backward_connectivity,
-             type_="backward", fig_num=3)
-
-plot.noise(noise, dt=t_step)
-print("Done!")

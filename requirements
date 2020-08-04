@@ -1,0 +1,5 @@
+matplotlib=>3.3.0
+numpy=>1.19.1
+pandas=>1.0.5
+sicpy=>1.5.2
+tqdm=>4.48.0

@@ -9,12 +9,9 @@ Recanatesi *et al.* present a model of memory retrieval based on a Hopfield mode
 
 ## Dependencies
 
-Python 3 with packages:
- * Numpy
- * matplotlib
- * tqdm
+Python 3 with packages in `requirements`.
 
-```pip3 install --user numpy matplotlib tqdm```
+```pip install -r requirements```
  
 
 ## Usage
@@ -23,27 +20,53 @@ Clone this repository:
 
 ```git clone https://github.com/c-torre/replication-recanatesi-2015.git```
 
-Run *main.py*:
+Change the parameters of `main.py` to your needs.
+Examples for the parameter sweeps are included in the file.
+You may want to lower `T_TOT` for the first figures, and then set it back to normal for cluster simulations.
+You should also change the where to save the simulations.
+Paths in `paths.py` are automatically recognized for plotting.
 
-```python3 main.py```
+Job files for the `slurm` workload manager are included.
+`SBATCH` parameters give an idea of the computational cost, and may be tweaked for different cluster requirements.
+`run.sh` adds some convenience and requires an `out` directory at project root.
 
-The network will run automatically and generate all plots in the */fig* directory relative to where the script is saved.
+To start simulating networks in parallel:
 
+```./run.sh simulate.job```
+
+Some machines may be able to run `plot.py` with local hardware.
+Otherwise run:
+
+```./run.sh plot.job```
+
+Default `main.py`/`simulate.job` outputs are directed to the `simulations` directory tree.
+Plotting `plot.py`/`plot.job` outputs are directed to `figures` directory.
+All seeds and parameters are saved in a `./simulations/XXXX/parameters.csv` as you decide to produce plots with those simulations for repoducibility.
 
 ## Structure
 
 ```
-├── tools                                    # different model utilities
-│   ├── __init__.py                          
-│   ├── plots.py                             # plotting functions
-│   └── sine_wave.py                         # sine wave function
+├── parameters                               # different model utilities
+│   ├── ranges.csv                           # plotting functions
+│   └── simulation.csv                       # sine wave function
+├── simulations                              # different model utilities
+│   └── *param*                              # will contain simulation results
+│        └── parameters.csv                  # simulated parameters used for plotting
+├── .gitignore                               # clean mess
+├── file_loader.py                           # checks files before plotting
 ├── LICENSE                                  # GPLv3   
-├── main.py                                  # <Run this file to start the model>
+├── main.py                                  # runs simulations
 ├── metadata.tex                             # metadata file for ReScience
+├── paths.py                                 # manages project paths
+├── plot.job                                 # plotting at cluster
+├── plot.py                                  # plotting functions
+├── re-neural-network-model-of-...pdf        # replication paper
 ├── README.md                                # readme; you are here
-└── re-neural-network-model-of-...pdf        # replication paper
+├── recall_performance.py                    # utils for recall analysis plotting
+├── requirements                             # pip install -r requirements
+├── run.sh                                   # convenient job runner
+└── simulate.job                             # simulating in parallel at cluster
 ```
-
 
 ## License
 
@@ -52,12 +75,16 @@ The network will run automatically and generate all plots in the */fig* director
 
 ## Software Environment
 
+Local:
+
 ```
-OS: Manjaro GNU/Linux 18.1.2 x86_64
-Python: 3.7.4 (default, Oct  4 2019, 06:57:26)
-[GCC 9.2.0] on linux
-NumPy: 1.17.2
-matplotlib: 3.1.1
-tqdm 4.28.1
+Parabola GNU/Linux-libre-5.7.10 x86_64
+Python: 3.8.5
 ```
-Also tested on: Ubuntu GNU/Linux 18 LTS, and MacOS Mojave.
+
+Cluster:
+
+```
+CentOS GNU/Linux 7.8.2003
+Python 3.7.7
+```

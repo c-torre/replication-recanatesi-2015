@@ -1,0 +1,18 @@
+#!/bin/bash
+############## This section states the requirements the job requires:
+#SBATCH --job-name=memonet
+#SBATCH --time 05:00
+#SBATCH -c 1
+#SBATCH --mem=16000MB
+#SBATCH --ntasks=1
+#SBATCH -o out/test.out
+############## Here starts the actual UNIX commands and payload:
+
+module purge
+module load Python/3.6.6-foss-2018b anaconda
+
+srun python plot.py
+
+# Make sure to edit according to your needs, especially:
+# - Working directory (under a "SBATCH" line)
+# - Virtual environment location ("source")

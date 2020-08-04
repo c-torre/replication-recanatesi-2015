@@ -1,0 +1,5 @@
+parameter,min_,max_
+seed,0,1000
+noise_var,0,130
+cont_forth,400,20000
+cont_forth_low,100,5000

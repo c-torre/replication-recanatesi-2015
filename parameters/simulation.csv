@@ -1,0 +1,15 @@
+parameter,value
+num_neurons,100000
+num_memories,16
+t_decay,0.01
+t_step,0.001
+t_tot,450
+excitation,12500
+sparsity,0.1
+gain_threshold,0
+gain_exp,0.333333333333
+sin_min,0.4
+sin_max,1.2
+noise_var,65
+cont_forth,1500
+cont_back,850
