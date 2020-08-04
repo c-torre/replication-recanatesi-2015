@@ -60,7 +60,7 @@ All seeds and parameters are saved in a `./simulations/XXXX/parameters.csv` as y
 ├── paths.py                                 # manages project paths
 ├── plot.job                                 # plotting at cluster
 ├── plot.py                                  # plotting functions
-├── re-neural-network-model-of-...pdf        # replication paper
+├── re-neural-network-model...pdf            # replication paper
 ├── README.md                                # readme; you are here
 ├── recall_performance.py                    # utils for recall analysis plotting
 ├── requirements                             # pip install -r requirements
