@@ -47,8 +47,8 @@ All seeds and parameters are saved in a `./simulations/XXXX/parameters.csv` as y
 
 ```
 ├── parameters                               # different model utilities
-│   ├── ranges.csv                           # plotting functions
-│   └── simulation.csv                       # sine wave function
+│   ├── ranges.csv                           # parameter sweeps for figures
+│   └── simulation.csv                       # parameters for main simulations
 ├── simulations                              # different model utilities
 │   └── *param*                              # will contain simulation results
 │        └── parameters.csv                  # simulated parameters used for plotting
