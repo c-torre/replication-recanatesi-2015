@@ -1,3 +1,4 @@
+#%%
 """
 <[Re] Recanatesi (2015). Neural Network Model of Memory Retrieval>
 Copyright (C) <2020>  <de la Torre-Ortiz C, Nioche A>
@@ -21,14 +22,13 @@ import os
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-
 from tqdm import tqdm
 
 import paths
 
 PARAMETERS_DIR = paths.PARAMETERS_DIR
-PATTERNS_DIR = None  # paths. ...
-RECALLS_DIR = None  # paths. ...
+PATTERNS_DIR = paths.PATTERNS_SEEDS_DIR  # paths. ...
+RECALLS_DIR = paths.RECALLS_SEEDS_DIR  # paths. ...
 
 assert (
     PATTERNS_DIR is not None and RECALLS_DIR is not None
@@ -45,28 +45,28 @@ np.random.seed(job_id)
 
 PARAMETERS_DF = pd.read_csv(os.path.join(PARAMETERS_DIR, "simulation.csv"), index_col=0)
 
-NUM_NEURONS = PARAMETERS_DF.loc["num_neurons"]
-NUM_MEMORIES = PARAMETERS_DF.loc["num_memories"]
+NUM_NEURONS = int(PARAMETERS_DF.loc["num_neurons"].array[0])
+NUM_MEMORIES = int(PARAMETERS_DF.loc["num_memories"].array[0])
 # Activation
-T_DECAY = PARAMETERS_DF.loc["t_decay"]
+T_DECAY = PARAMETERS_DF.loc["t_decay"].array[0]
 # Time
-T_STEP = PARAMETERS_DF.loc["t_step"]
-T_TOT = PARAMETERS_DF.loc["t_tot"]
+T_STEP = PARAMETERS_DF.loc["t_step"].array[0]
+T_TOT = 10  # PARAMETERS_DF.loc["t_tot"].array[0] !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 T_SIMULATED = int(T_TOT // T_STEP)
 # Hebbian rule
-EXCITATION = PARAMETERS_DF.loc["excitation"]
-SPARSITY = PARAMETERS_DF.loc["sparsity"]
+EXCITATION = PARAMETERS_DF.loc["excitation"].array[0]
+SPARSITY = PARAMETERS_DF.loc["sparsity"].array[0]
 # Gain
-GAIN_THRESHOLD = PARAMETERS_DF.loc["gain_threshold"]
-GAIN_EXP = PARAMETERS_DF.loc["gain_exp"]
+GAIN_THRESHOLD = PARAMETERS_DF.loc["gain_threshold"].array[0]
+GAIN_EXP = PARAMETERS_DF.loc["gain_exp"].array[0]
 # Inhibition
-SIN_MIN = PARAMETERS_DF.loc["sin_min"] * EXCITATION
-SIN_MAX = PARAMETERS_DF.loc["sin_max"] * EXCITATION
+SIN_MIN = PARAMETERS_DF.loc["sin_min"].array[0] * EXCITATION
+SIN_MAX = PARAMETERS_DF.loc["sin_max"].array[0] * EXCITATION
 # Noise
-NOISE_VAR = PARAMETERS_DF.loc["noise_var"]
+NOISE_VAR = PARAMETERS_DF.loc["noise_var"].array[0]
 # Forward and backward contiguity
-CONT_FORTH = PARAMETERS_DF.loc["cont_forth"] / NUM_NEURONS
-CONT_BACK = PARAMETERS_DF.loc["cont_back"] / NUM_NEURONS
+CONT_FORTH = PARAMETERS_DF.loc["cont_forth"].array[0] / NUM_NEURONS
+CONT_BACK = PARAMETERS_DF.loc["cont_back"].array[0] / NUM_NEURONS
 # For parameter sweeps
 # CONT_FORTH = get_simulation_range_param("cont_forth", job_id, 100)
 # CONT_FORTH = get_simulation_range_param("cont_forth_low", job_id, 100)
@@ -93,7 +93,9 @@ def get_simulation_range_param(sim_mode: str, job_id: int, num_points: int) -> f
         return ranges
 
     def get_linespace_parameters(
-        sim_mode: str, param_ranges_df: pd.DataFrame, num_points: int,
+        sim_mode: str,
+        param_ranges_df: pd.DataFrame,
+        num_points: int,
     ) -> np.array:
         """Return simulation parameters"""
 
@@ -122,7 +124,11 @@ def get_simulation_range_param(sim_mode: str, job_id: int, num_points: int) -> f
 
     check_simulation_mode(sim_mode)
     ranges_df = prepare_parameter_ranges()
-    range_param = get_linespace_parameters(sim_mode, ranges_df, num_points,)
+    range_param = get_linespace_parameters(
+        sim_mode,
+        ranges_df,
+        num_points,
+    )
 
     return get_param_from_range(range_param, job_id)
 
@@ -182,6 +188,7 @@ def get_populations_and_sizes(patterns: np.ndarray) -> (np.ndarray, np.ndarray):
 
 patterns = make_patterns(NUM_NEURONS, NUM_MEMORIES, SPARSITY)
 populations, population_sizes = get_populations_and_sizes(patterns)
+#%%
 num_populations = population_sizes.shape[0]
 
 connectivity_reg_, connectivity_back_, connectivity_forth_ = get_connectivities(
@@ -196,6 +203,7 @@ def prepare_times(t_tot: int, t_step: float):
 
 
 time = prepare_times(T_TOT, T_STEP)
+#%%
 
 initial_memory = np.random.choice(range(NUM_MEMORIES))
 currents = connectivity_reg_[:, initial_memory].astype(np.float)
@@ -262,9 +270,12 @@ similarity = proj_attr @ connectivity_reg_
 rate_avg = (population_sizes * rates.T @ connectivity_reg_ / np.diagonal(similarity)).T
 file_name = f"s{job_id}-jf{int(CONT_FORTH * NUM_NEURONS)}-n{int(NOISE_VAR)}"
 
+#%%
 
 # save recall patterns
 np.save(os.path.join(PATTERNS_DIR, file_name), similarity)
+
+#%%
 
 
 def transform_file(rates_) -> np.ndarray:
@@ -278,4 +289,3 @@ def transform_file(rates_) -> np.ndarray:
 
 # save recall sequence
 np.save(os.path.join(RECALLS_DIR, file_name), transform_file(rate_avg))
-
