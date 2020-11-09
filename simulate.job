@@ -10,7 +10,7 @@
 ############## Here starts the actual UNIX commands and payload:
 
 module purge
-module load Python/3.6.6-foss-2018b anaconda
+module load anaconda
 
 srun python main.py $SLURM_ARRAY_TASK_ID
 

@@ -6,22 +6,21 @@ Utils for plotting network recalls analysis.
 """
 
 import os
-import pickle
-
 from typing import Hashable, Iterable
 
-from scipy.io import loadmat
-import numpy as np
 import matplotlib.pyplot as plt
-import glob
+import numpy as np
 import pandas as pd
-from scipy.sparse import coo_matrix
-from scipy.sparse import csr_matrix
+from scipy.io import loadmat
+from scipy.sparse import coo_matrix, csr_matrix
 from tqdm import tqdm
 
 
 def get_used_parameters(
-    file_names: Hashable, sims_path: str, num_trials: int, separator="-",
+    file_names: Hashable,
+    sims_path: str,
+    num_trials: int,
+    separator="-",
 ) -> pd.DataFrame:
     """Gets and saves the set of parameters of the simulations"""
 
@@ -31,11 +30,12 @@ def get_used_parameters(
         return file_name.split(separator)[position]
 
     parameters_used = pd.DataFrame(
-        index=range(num_trials), columns=["seed", "cont_forth", "noise_var"],
+        index=range(num_trials),
+        columns=["seed", "cont_forth", "noise_var"],
     )
 
     parameters_used["seed"] = tuple(
-        int(get_changing_parameter(file_name, position=0)[1:])
+        int(get_changing_parameter(file_name, position=0, separator=separator)[1:])
         for file_name in file_names
     )
     parameters_used["cont_forth"] = tuple(
@@ -51,16 +51,48 @@ def get_used_parameters(
     return parameters_used
 
 
-def load_sequences(file_paths: Hashable) -> None:
+def load_sequences(file_paths: Iterable) -> None:
     """Make recall sequences from saved ndarrays"""
 
     print("Loading recall sequences...")
-    recall_sequences = np.vstack([np.load(file_path) for file_path in file_paths])
+    # recall_sequences = np.vstack([np.load(file_path) for file_path in file_paths])
+    # loaded = [np.load(file_path) for file_path in file_paths]
+    ## sequences_shapes = {}
+    sequences_shapes = pd.DataFrame(columns=("Recall sequence", "Length"))
+    num_files = len(file_paths)
+
+    for file_idx, file_path in enumerate(file_paths):
+        recall_sequence = np.load(file_path)
+        new_row = {"Recall sequence": recall_sequence, "Length": len(recall_sequence)}
+        sequences_shapes = sequences_shapes.append(new_row, ignore_index=True)
+
+    ##intended_value = np.bincount(sequences_shapes.values()).argmax()
+    ## recall_sequences = np.fromiter(
+    ##     dict(
+    ##         filter(lambda item: item[1] == intended_value, sequences_shapes.items())
+    ##     ).keys()
+    ## )
+    ###filtered = sequences_shapes[sequences_shapes == sequences_shapes["Length"].mode()]
+    #### intended_value = sequences_shapes["Length"].mode().to_numpy()
+
+    # Take only arrays as long as the most common length
+    intended_value = sequences_shapes["Length"].mode().array[0]
+    filtered = sequences_shapes[sequences_shapes["Length"] == intended_value]
+    recall_sequences = filtered["Recall sequence"].to_numpy()
+    # print((filtered))
+    # print(len(filtered))
+
+    # loaded = [np.load(file_path) for file_path in file_paths]
+    recall_sequences = np.vstack(recall_sequences)
+
     print("Done!")
-    return recall_sequences
+    return recall_sequences  # THE GOOOOOD ONEEEEE
 
 
-def make_similarity(similarity_paths: str, num_trials: int,) -> np.ndarray:
+def make_similarity(
+    similarity_paths: str,
+    # num_trials: int,
+) -> np.ndarray:
     """Get pattern similarities from saved ndarrays"""
 
     print("Loading pattern similarities...")

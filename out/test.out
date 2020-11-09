@@ -1,0 +1,11 @@
+Preparing temporal properties plots... ...
+Loading recall sequences...
+Done!
+Traceback (most recent call last):
+  File "plot.py", line 303, in <module>
+    fig_file_path=paths.FIGURES_DIR,
+  File "plot.py", line 149, in plot_analysis
+    similarities = recall_performance.make_similarity(file_paths_patterns, num_trials)
+TypeError: make_similarity() takes 1 positional argument but 2 were given
+srun: error: csl17: task 0: Exited with exit code 1
+srun: Terminating job step 56409479.0

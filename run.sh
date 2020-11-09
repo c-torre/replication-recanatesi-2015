@@ -1,6 +1,6 @@
 #!/bin/bash
 
-truncate --size 0 out/test.out
+truncate --size 0 out/log.out
 echo -n $@
 PID=$(sbatch --requeue --parsable "$@" | tail -n1)
 echo "	$PID"
