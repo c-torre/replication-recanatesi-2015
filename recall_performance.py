@@ -55,38 +55,21 @@ def load_sequences(file_paths: Iterable) -> None:
     """Make recall sequences from saved ndarrays"""
 
     print("Loading recall sequences...")
-    # recall_sequences = np.vstack([np.load(file_path) for file_path in file_paths])
-    # loaded = [np.load(file_path) for file_path in file_paths]
-    ## sequences_shapes = {}
     sequences_shapes = pd.DataFrame(columns=("Recall sequence", "Length"))
-    num_files = len(file_paths)
 
     for file_idx, file_path in enumerate(file_paths):
         recall_sequence = np.load(file_path)
         new_row = {"Recall sequence": recall_sequence, "Length": len(recall_sequence)}
         sequences_shapes = sequences_shapes.append(new_row, ignore_index=True)
 
-    ##intended_value = np.bincount(sequences_shapes.values()).argmax()
-    ## recall_sequences = np.fromiter(
-    ##     dict(
-    ##         filter(lambda item: item[1] == intended_value, sequences_shapes.items())
-    ##     ).keys()
-    ## )
-    ###filtered = sequences_shapes[sequences_shapes == sequences_shapes["Length"].mode()]
-    #### intended_value = sequences_shapes["Length"].mode().to_numpy()
-
     # Take only arrays as long as the most common length
     intended_value = sequences_shapes["Length"].mode().array[0]
     filtered = sequences_shapes[sequences_shapes["Length"] == intended_value]
     recall_sequences = filtered["Recall sequence"].to_numpy()
-    # print((filtered))
-    # print(len(filtered))
-
-    # loaded = [np.load(file_path) for file_path in file_paths]
     recall_sequences = np.vstack(recall_sequences)
 
     print("Done!")
-    return recall_sequences  # THE GOOOOOD ONEEEEE
+    return recall_sequences
 
 
 def make_similarity(
@@ -113,9 +96,13 @@ def get_main_df(
 
     print("Calculating recall metrics...")
     df = pd.DataFrame()
-    for i_trial in tqdm(range(num_trials)):
+    for i_trial in tqdm(range(num_trials - 1)):
         param = param_iterable[i_trial]
+        # Debug starts here
+        print(num_trials, i_trial)
+        print(recall_sequence.shape)
         items, times = np.unique(recall_sequence[i_trial], return_index=True)
+        # Debug ends here
         times = times[items != 0]
         times = np.sort(times)
         items = recall_sequence[i_trial][times]

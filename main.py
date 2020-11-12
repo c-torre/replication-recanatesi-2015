@@ -51,7 +51,7 @@ NUM_MEMORIES = int(PARAMETERS_DF.loc["num_memories"].array[0])
 T_DECAY = PARAMETERS_DF.loc["t_decay"].array[0]
 # Time
 T_STEP = PARAMETERS_DF.loc["t_step"].array[0]
-T_TOT = PARAMETERS_DF.loc["t_tot"].array[0] 
+T_TOT = PARAMETERS_DF.loc["t_tot"].array[0]
 T_SIMULATED = int(T_TOT // T_STEP)
 # Hebbian rule
 EXCITATION = PARAMETERS_DF.loc["excitation"].array[0]
