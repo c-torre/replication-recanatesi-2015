@@ -6,18 +6,16 @@ Utils for plotting network recalls analysis.
 """
 
 import os
-from typing import Hashable, Iterable
+import re
+from typing import Iterable
 
-import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.io import loadmat
-from scipy.sparse import coo_matrix, csr_matrix
 from tqdm import tqdm
 
 
 def get_used_parameters(
-    file_names: Hashable,
+    file_names: Iterable,
     sims_path: str,
     num_trials: int,
     separator="-",
@@ -25,27 +23,26 @@ def get_used_parameters(
     """Gets and saves the set of parameters of the simulations"""
 
     def get_changing_parameter(file_name: str, position: int, separator="-") -> int:
-        """Parse name to get parameters"""
+        """Parse file name to get parameters"""
 
-        return file_name.split(separator)[position]
+        root, _ = os.path.splitext(file_name)
+        selected_param = root.split(separator)[position]
+        match = re.search("[0-9]+$", selected_param)  # Match any last number(s)
+
+        return int(match.group())
+
+    changing_parameters = "seed", "cont_forth", "noise_var"
 
     parameters_used = pd.DataFrame(
         index=range(num_trials),
-        columns=["seed", "cont_forth", "noise_var"],
+        columns=changing_parameters,
     )
 
-    parameters_used["seed"] = tuple(
-        int(get_changing_parameter(file_name, position=0, separator=separator)[1:])
-        for file_name in file_names
-    )
-    parameters_used["cont_forth"] = tuple(
-        int(get_changing_parameter(file_name, position=1)[2:])
-        for file_name in file_names
-    )
-    parameters_used["noise_var"] = tuple(
-        int(get_changing_parameter(file_name, position=2)[1:-4])
-        for file_name in file_names
-    )
+    for idx, parameter_name in enumerate(changing_parameters):
+        parameters_used[parameter_name] = tuple(
+            (get_changing_parameter(file_name, position=idx, separator=separator))
+            for file_name in file_names
+        )
 
     parameters_used.to_csv(os.path.join(sims_path, "parameters.csv"))
     return parameters_used
@@ -57,7 +54,7 @@ def load_sequences(file_paths: Iterable) -> None:
     print("Loading recall sequences...")
     sequences_shapes = pd.DataFrame(columns=("Recall sequence", "Length"))
 
-    for file_idx, file_path in enumerate(file_paths):
+    for file_path in tqdm(file_paths):
         recall_sequence = np.load(file_path)
         new_row = {"Recall sequence": recall_sequence, "Length": len(recall_sequence)}
         sequences_shapes = sequences_shapes.append(new_row, ignore_index=True)
@@ -73,17 +70,20 @@ def load_sequences(file_paths: Iterable) -> None:
 
 
 def make_similarity(
-    similarity_paths: str,
-    # num_trials: int,
+    similarity_paths: Iterable,
 ) -> np.ndarray:
     """Get pattern similarities from saved ndarrays"""
 
     print("Loading pattern similarities...")
-    similarities = np.stack(
-        [np.load(similarity_path) for similarity_path in sorted(similarity_paths)]
-    )
+    similarities = []
+    for similarity_path in tqdm(sorted(similarity_paths)):
+        similarities.append(np.load(similarity_path))
+
+    # similarities = np.stack(
+    #     [np.load(similarity_path) for similarity_path in sorted(similarity_paths)]
+    # )
     print("Done!")
-    return similarities
+    return np.stack(similarities)
 
 
 def get_main_df(
@@ -95,50 +95,49 @@ def get_main_df(
     """Make dataframe with all recall metrics"""
 
     print("Calculating recall metrics...")
-    df = pd.DataFrame()
-    for i_trial in tqdm(range(num_trials - 1)):
-        param = param_iterable[i_trial]
-        # Debug starts here
-        print(num_trials, i_trial)
-        print(recall_sequence.shape)
-        items, times = np.unique(recall_sequence[i_trial], return_index=True)
-        # Debug ends here
+    metrics_df = pd.DataFrame()
+    for n_trial in tqdm(range(num_trials - 1)):
+        param = param_iterable[n_trial]
+        items, times = np.unique(recall_sequence[n_trial], return_index=True)
         times = times[items != 0]
         times = np.sort(times)
-        items = recall_sequence[i_trial][times]
+        items = recall_sequence[n_trial][times]
         irts = np.insert(np.diff([times]), 0, 0)
-        sizes = pattern_similarities[i_trial][items, items]
-        ranksall = np.array(
-            [np.argsort(x).argsort() for x in pattern_similarities[i_trial]]
+        sizes = pattern_similarities[n_trial][items, items]
+        ranks_all = np.array(
+            [np.argsort(x).argsort() for x in pattern_similarities[n_trial]]
         )
         intersections = np.insert(
-            pattern_similarities[i_trial][items[:-1], items[1:]], 0, 0
+            pattern_similarities[n_trial][items[:-1], items[1:]], 0, 0
         )  #
-        ranks = np.insert(ranksall[items[:-1], items[1:]], 0, 0)
+        ranks = np.insert(ranks_all[items[:-1], items[1:]], 0, 0)
         dicttrial = {
             "items": items,
             "times": times,
-            "trial": i_trial,
+            "trial": n_trial,
             "irts": irts,
             "sizes": sizes,
             "intersections": intersections,
             "ranks": ranks,
             "param": param,
         }
-        dftrial = pd.DataFrame.from_dict(dicttrial)
-        df = df.append(dftrial)
+        trial_df = pd.DataFrame.from_dict(dicttrial)
+        metrics_df = metrics_df.append(trial_df)
 
-    df = df.reset_index().rename(columns={"index": "position"})
-    N_recalled = (
-        df.groupby("trial")
+    metrics_df = metrics_df.reset_index().rename(columns={"index": "position"})
+    num_memories_recalled = (
+        metrics_df.groupby("trial")
         .agg({"position": np.max})
-        .rename(columns={"position": "N_recalled"})
+        .rename(columns={"position": "num_memories_recalled"})
     )
-    df = df.merge(N_recalled, on="trial")
-    df.N_recalled = df.N_recalled + 1  # This is to change that python is 0-based
+    metrics_df = metrics_df.merge(num_memories_recalled, on="trial")
+    metrics_df.num_memories_recalled = (
+        metrics_df.num_memories_recalled + 1
+    )  # for 1-based indexing
 
     # Calculate for the varying parameter
-    dft = df.groupby("param").apply(np.mean)
+    #############dft = metrics_df.groupby("param").apply(np.mean)
     print("Done!")
 
-    return dft
+    #########return dft
+    return metrics_df

@@ -6,7 +6,7 @@ Checks files before plotting.
 """
 
 import os
-from typing import Iterable, Hashable
+from typing import Hashable, Iterable
 
 
 def get_file_paths(directory: str, name_filter: str) -> frozenset:
@@ -44,7 +44,7 @@ def take_common_set_elements(sets: Hashable) -> frozenset:
     return sampled_set.intersection(*sets)
 
 
-def get_file_names_checked(directories: Hashable, name_filter: str) -> frozenset:
+def get_file_names_checked(directories: set, name_filter: str) -> frozenset:
     """Use all checking pipeline to return file names to be loaded"""
 
     assert type(directories) != str
@@ -61,4 +61,3 @@ def get_file_names_checked(directories: Hashable, name_filter: str) -> frozenset
         file_names_to_compare.add(frozenset(file_names))
 
     return frozenset(take_common_set_elements(file_names_to_compare))
-

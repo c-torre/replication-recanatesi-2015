@@ -7,19 +7,16 @@ Plotting functions.
 """
 
 import os
-from typing import Hashable, Iterable
 
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from scipy.io import loadmat
-from scipy.sparse import coo_matrix, csr_matrix
+from scipy.sparse import csr_matrix
 
 import file_loader
 import paths
 import recall_performance
 
-#
 # def plot_parameter_sweep(
 #     parameter: str,
 #     sims_path: str,
@@ -34,10 +31,14 @@ import recall_performance
 #     """Plots the parameter sweeps"""
 #
 #     def plot(
-#         df: pd.DataFrame, xlabel: str, ylabel: str, fig_file_path: str, fig_name: str,
+#         df: pd.DataFrame,
+#         xlabel: str,
+#         ylabel: str,
+#         fig_file_path: str,
+#         fig_name: str,
 #     ) -> None:
 #
-#         plt.plot(dft["param"], dft["N_recalled"], "-o", linewidth="0.5")
+#         plt.plot(df["param"], df["num_memories_recalled"], "-o", linewidth="0.5")
 #         plt.xlabel(xlabel)
 #         plt.ylabel(ylabel)
 #         plt.yticks(range(16))
@@ -49,7 +50,10 @@ import recall_performance
 #
 #     # File names will be parsed to get parameters
 #     file_names = sorted(
-#         file_loader.get_file_names_checked({patterns_path, recalls_path}, name_filter,)
+#         file_loader.get_file_names_checked(
+#             {patterns_path, recalls_path},
+#             name_filter,
+#         )
 #     )
 #
 #     file_paths_patterns = sorted(file_loader.get_file_paths(patterns_path, name_filter))
@@ -63,52 +67,22 @@ import recall_performance
 #     )
 #
 #     recalls_sequence = recall_performance.load_sequences(file_paths_recalls)
+#     print("I'M GOING TO PRINT RECALL SEQUENCES HEHEHEH")
+#     print(recalls_sequence)
+#     print("I DID IT ALREADY MUAHAHAHA")
 #
-#     similarities = recall_performance.make_similarity(file_paths_patterns, num_trials)
+#     similarities = recall_performance.make_similarity(
+#         file_paths_patterns
+#     )  # , num_trials)
 #
 #     dft = recall_performance.get_main_df(
-#         num_trials, parameters_used[parameter], recalls_sequence, similarities,
+#         num_trials,
+#         parameters_used[parameter],
+#         recalls_sequence,
+#         similarities,
 #     )
 #
-#     plot(dft, xlabel, ylabel, paths.FIGURES_DIR, fig_name)
-#
-#
-# plot_parameter_sweep(
-#     parameter="noise_var",
-#     sims_path=paths.SIMS_NOISE_STD_DIR,
-#     patterns_path=paths.PATTERNS_NOISE_STD_DIR,
-#     recalls_path=paths.RECALLS_NOISE_STD_DIR,
-#     name_filter=".npy",
-#     xlabel="Noise standard deviation",
-#     ylabel="Average words recalled",
-#     fig_file_path=paths.FIGURES_DIR,
-#     fig_name="noise_var.pdf",
-# )
-#
-# plot_parameter_sweep(
-#     parameter="cont_forth",
-#     sims_path=paths.SIMS_CONT_FORTH_DIR,
-#     patterns_path=paths.PATTERNS_CONT_FORTH_DIR,
-#     recalls_path=paths.RECALLS_CONT_FORTH_DIR,
-#     name_filter=".npy",
-#     xlabel="Forward contiguity",
-#     ylabel="Average words recalled",
-#     fig_file_path=paths.FIGURES_DIR,
-#     fig_name="cont_forth.pdf",
-# )
-#
-# plot_parameter_sweep(
-#     parameter="cont_forth",
-#     sims_path=paths.SIMS_CONT_FORTH_LOW_DIR,
-#     patterns_path=paths.PATTERNS_CONT_FORTH_LOW_DIR,
-#     recalls_path=paths.RECALLS_CONT_FORTH_LOW_DIR,
-#     name_filter=".npy",
-#     xlabel="Forward contiguity",
-#     ylabel="Average words recalled",
-#     fig_file_path=paths.FIGURES_DIR,
-#     fig_name="cont_forth_low.pdf",
-# )
-#
+#     plot(dft, xlabel, ylabel, fig_file_path, fig_name)
 
 
 def plot_analysis(
@@ -146,9 +120,7 @@ def plot_analysis(
 
     recalls_sequence = recall_performance.load_sequences(file_paths_recalls)
 
-    similarities = recall_performance.make_similarity(
-        file_paths_patterns
-    )  # , num_trials)
+    similarities = recall_performance.make_similarity(file_paths_patterns)
 
     dft = recall_performance.get_main_df(
         num_trials,
@@ -175,11 +147,12 @@ def plot_analysis(
             )
         ).toarray()
         recalls_bincum = np.cumsum(recalls_bin, axis=1)
-        recalls_mean = np.mean(recalls_bincum, axis=0)
-        plt.plot(recalls_mean * mid_memory)
+        recalls_mean = np.mean(recalls_bincum, axis=0) * mid_memory
+        recalls_mean = recalls_mean * mid_memory / 50
+
+        plt.plot(recalls_mean)
         plt.xlabel("Time steps")
         plt.ylabel("Average words recalled")
-        plt.yticks(range(mid_memory))
         plt.tight_layout()
         plt.savefig(os.path.join(fig_file_path, fig_name))
         plt.close("all")
@@ -192,10 +165,11 @@ def plot_analysis(
         fig_name: str,
     ) -> None:
 
-        plt.hist(recalls_df.irts.values, np.linspace(0, num_trials, 30))
+        plt.hist(recalls_df.irts.values, np.linspace(0, num_trials, 50))
         plt.yscale("log")
-        plt.xlabel("IRT value")
+        plt.xlabel("IRT value (cycles)")
         plt.ylabel("Count of IRT values")
+        plt.xlim(0, 500)
         plt.tight_layout()
         plt.savefig(os.path.join(fig_file_path, fig_name))
         plt.close("all")
@@ -208,21 +182,26 @@ def plot_analysis(
         fig_name: str,
     ) -> None:
 
-        df_fanout = recalls_df.groupby(["N_recalled", "position"]).agg(
+        df_fanout = recalls_df.groupby(["num_memories_recalled", "position"]).agg(
             {"irts": np.mean}
         )
         df_fanout = pd.pivot_table(
             data=recalls_df,
-            index=["N_recalled", "position"],
+            index=["num_memories_recalled", "position"],
             values="irts",
             aggfunc=np.nanmean,
         ).reset_index()
+        max_unique_recalls = []
         for i in range(16):
-            data = df_fanout[df_fanout["N_recalled"] == i]
-            plt.plot(data["irts"].values)
+            data = df_fanout[df_fanout["num_memories_recalled"] == i]
+            data = data["irts"].to_numpy()
+            max_unique_recalls.append(len(data))
+            plt.plot(data, alpha=0.7)
 
-        plt.xlabel("Unique memories recalled")
+        memory_range = range(max(max_unique_recalls))
+        plt.xlabel("Unique memory recalls")
         plt.ylabel("IRT value (cycles)")
+        plt.xticks(memory_range)
         plt.tight_layout()
         plt.savefig(os.path.join(fig_file_path, fig_name))
         plt.close("all")
@@ -264,10 +243,12 @@ def plot_analysis(
     ) -> None:
 
         values = recalls_df["ranks"][recalls_df["ranks"] > 0]
-        counts = [np.sum(values == x) for x in range(1, 15)]
-        plt.plot(range(1, 15), counts / np.sum(counts))
+        memory_range = range(1, 15)
+        counts = [np.sum(values == x) for x in memory_range]
+        plt.plot(range(1, 15), counts / np.sum(counts), "o-")
         plt.xlabel("Transition size rank")
         plt.ylabel("Probability of transition")
+        plt.xticks(memory_range)
         plt.tight_layout()
         plt.savefig(os.path.join(fig_file_path, fig_name))
         plt.close("all")
@@ -288,7 +269,7 @@ def plot_analysis(
         irts_mean = [np.mean(irts[intersections_bin == x]) for x in range(num_bins)]
         bins_centers = (bins[:-1] + bins[1:]) / 2
         plt.scatter(bins_centers, irts_mean)
-        plt.xlabel("Memories similarity")
+        plt.xlabel("Memory similarity (neurons)")
         plt.ylabel("IRT value (cycles)")
         plt.tight_layout()
         plt.savefig(os.path.join(fig_file_path, fig_name))
@@ -297,10 +278,54 @@ def plot_analysis(
     plot_transitions_irt(dft, fig_file_path, "transitions_irt.pdf")
 
 
-plot_analysis(
-    sims_path=paths.SIMS_SEEDS_DIR,
-    patterns_path=paths.PATTERNS_SEEDS_DIR,
-    recalls_path=paths.RECALLS_SEEDS_DIR,
-    name_filter=".npy",
-    fig_file_path=paths.FIGURES_DIR,
-)
+def main():
+    plot_analysis(
+        sims_path=paths.SIMS_SEEDS_DIR,
+        patterns_path=paths.PATTERNS_SEEDS_DIR,
+        recalls_path=paths.RECALLS_SEEDS_DIR,
+        name_filter=".npy",
+        fig_file_path=paths.FIGURES_DIR,
+    )
+
+    # 1
+    # plot_parameter_sweep(
+    #     parameter="cont_forth",
+    #     sims_path=paths.SIMS_CONT_FORTH_DIR,
+    #     patterns_path=paths.PATTERNS_CONT_FORTH_DIR,
+    #     recalls_path=paths.RECALLS_CONT_FORTH_DIR,
+    #     name_filter=".npy",
+    #     xlabel="Forward contiguity",
+    #     ylabel="Average words recalled",
+    #     fig_file_path=paths.FIGURES_DIR,
+    #     fig_name="cont_forth.pdf",
+    # )
+    #
+    # #%%
+    #
+    # # 0
+    # plot_parameter_sweep(
+    #     parameter="noise_var",
+    #     sims_path=paths.SIMS_NOISE_STD_DIR,
+    #     patterns_path=paths.PATTERNS_NOISE_STD_DIR,
+    #     recalls_path=paths.RECALLS_NOISE_STD_DIR,
+    #     name_filter=".npy",
+    #     xlabel="Noise standard deviation",
+    #     ylabel="Average words recalled",
+    #     fig_file_path=paths.FIGURES_DIR,
+    #     fig_name="noise_var.pdf",
+    # )
+    #
+    #
+    # # 2
+    # plot_parameter_sweep(
+    #     parameter="cont_forth",
+    #     sims_path=paths.SIMS_CONT_FORTH_LOW_DIR,
+    #     patterns_path=paths.PATTERNS_CONT_FORTH_LOW_DIR,
+    #     recalls_path=paths.RECALLS_CONT_FORTH_LOW_DIR,
+    #     name_filter=".npy",
+    #     xlabel="Forward contiguity",
+    #     ylabel="Average words recalled",
+    #     fig_file_path=paths.FIGURES_DIR,
+    #     fig_name="cont_forth_low.pdf",
+    # )
+    #
