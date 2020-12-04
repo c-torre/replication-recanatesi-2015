@@ -1,6 +1,6 @@
 #!/bin/bash
 ############## This section states the requirements the job requires:
-#SBATCH --job-name=re2015p
+#SBATCH --job-name=memonet
 #SBATCH --time 05:00
 #SBATCH -c 1
 #SBATCH --mem=16000MB
@@ -11,7 +11,7 @@
 module purge
 module load anaconda
 
-srun python plot.py
+srun python extra_plots.py
 
 # Make sure to edit according to your needs, especially:
 # - Working directory (under a "SBATCH" line)

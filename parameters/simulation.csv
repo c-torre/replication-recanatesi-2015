@@ -2,6 +2,7 @@ parameter,value
 num_neurons,100000
 num_memories,16
 t_decay,0.01
+recall_threshold,15.0
 t_step,0.001
 t_tot,450
 excitation,12500

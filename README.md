@@ -1,4 +1,5 @@
-# Replication of Recanatesi et al. (2015) "Neural Network Model of Memory Retrieval"
+Replication of Recanatesi et al. (2015) "Neural Network Model of Memory Retrieval"
+==================================================================================
 
 Replication authors: [Carlos de la Torre-Ortiz](https://github.com/c-torre) and [Aurélien Nioche](https://github.com/AurelienNioche/).
 
@@ -7,73 +8,98 @@ Original article: S. Recanatesi, M. Katkov, S. Romani, M. Tsodyks, Neural Networ
 Recanatesi *et al.* present a model of memory retrieval based on a Hopfield model for associative learning, with network dynamics that reflect associations between items due to semantic similarities.
 
 
-## Dependencies
+Dependencies
+------------
 
-Python 3 with packages in `requirements`.
+Python 3 with packages in `requirements.txt`.
 
-```pip install -r requirements```
- 
+```
+$ pip install -r requirements
+```
 
-## Usage
+Usage
+-----
 
 Clone this repository:
 
-```git clone https://github.com/c-torre/replication-recanatesi-2015.git```
+```
+$ git clone https://github.com/c-torre/replication-recanatesi-2015.git
+```
 
-Change the parameters of `main.py` to your needs.
-Examples for the parameter sweeps are included in the file.
-You may want to lower `T_TOT` for the first figures, and then set it back to normal for cluster simulations.
+Change the parameters of `simulation.py` to your needs.
 You should also change the where to save the simulations.
-Paths in `paths.py` are automatically recognized for plotting.
+Some related hints and examples included in `simulation.py` itself.
 
-Job files for the `slurm` workload manager are included.
-`SBATCH` parameters give an idea of the resource requirements, and may be tweaked for different cluster requirements.
-`run.sh` adds some convenience and requires an `out` directory at project root.
+The project requires a lot of memory and may not run in some regular machines.
+Job files for the `slurm` workload manager in a cluster are included.
+`SBATCH` parameters inside `.job` files give an idea of the resource requirements, and may be tweaked for different cluster specifications.
+`run.sh` is added for convenience, and redirects `slurm` job logs to `./debug/`.
 
 To start simulating networks in parallel:
 
-```./run.sh simulate.job```
+```
+$ sh run.sh simulate.job
+```
 
 Some machines may be able to run `plot.py` with local hardware.
 Otherwise run:
 
-```./run.sh plot.job```
+```
+$ sh run.sh plot.job
+```
 
-Default `main.py`/`simulate.job` outputs are directed to the `simulations` directory tree.
+Default `simulation.py`/`simulation.job` outputs are directed to the `simulations` directory tree.
 Plotting `plot.py`/`plot.job` outputs are directed to `figures` directory.
-All seeds and parameters are saved in a `./simulations/XXXX/parameters.csv` as you decide to produce plots with those simulations for repoducibility.
 
-## Structure
+Notes:
+
+* You may want to lower `T_TOT` for the first figures, and then set it back to normal for cluster simulations.
+* Running `simulation.py` with seed `33` will plot the first figures of the paper (default if run manually rather than with a cluster).
+* All seeds and parameters are saved in a `./simulations/XXXX/parameters.csv` as you decide to produce plots with those simulations for repoducibility.
+
+Structure
+---------
 
 ```
-├── parameters                               # different model utilities
-│   ├── ranges.csv                           # parameter sweeps for figures
-│   └── simulation.csv                       # parameters for main simulations
-├── simulations                              # different model utilities
-│   └── *param*                              # will contain simulation results
-│        └── parameters.csv                  # simulated parameters used for plotting
-├── .gitignore                               # clean mess
-├── file_loader.py                           # checks files before plotting
-├── LICENSE                                  # GPLv3   
-├── main.py                                  # runs simulations
-├── metadata.tex                             # metadata file for ReScience
-├── paths.py                                 # manages project paths
-├── plot.job                                 # plotting at cluster
-├── plot.py                                  # plotting functions
-├── re-neural-network-model...pdf            # replication paper
-├── README.md                                # readme; you are here
-├── recall_performance.py                    # utils for recall analysis plotting
-├── requirements                             # pip install -r requirements
-├── run.sh                                   # convenient job runner
-└── simulate.job                             # simulating in parallel at cluster
+├── debug                             # cluster slurm debug information
+├── figures                           # figures are saved here
+├── parameters                        # all values for parameters
+│   ├── ranges.csv                    # parameter sweeps for figures
+│   └── simulation.csv                # parameters for main simulations
+│
+├── simulations                       # will contain simulation results
+│   └── *param*                       # parameters; recalls and patters binaries
+│        └── parameters.csv           # simulated parameters used for plotting
+│
+├── settings                          # developer settings
+│   └── paths.py                      # project file paths
+│
+├── utils                             # misc functions
+│   ├── file_loading.py               # loads and checks files before plotting
+│   ├── plots.py                      # helper functions for plotting
+│   ├── recall_performance.py         # utils for recall analysis plotting
+│   └── simulation.csv                # parameters for main simulations
+│
+├── .gitignore                        # files ignored by git
+├── LICENSE                           # GPLv3
+├── metadata.tex                      # metadata file for ReScience
+├── plot.job                          # plotting at cluster
+├── plot.py                           # plotting functions
+├── re-neural-network-model...pdf     # replication paper
+├── README.md                         # readme; you are here
+├── requirements.txt                  # pip install -r requirements
+├── run.sh                            # convenient job runner
+├── simulation.job                    # simulate model in parallel at cluster
+└── simulation.py                     # runs simulations and some plots
 ```
 
-## License
+License
+-------
 
 [The GNU General Public License version 3](https://www.gnu.org/licenses/#GPL)
 
-
-## Software Environment
+Software Environment
+--------------------
 
 Local:
 
@@ -88,3 +114,5 @@ Cluster:
 CentOS GNU/Linux 7.8.2003
 Python 3.7.7
 ```
+
+The code is mostly compliant with `pylint`, and always formatted with `black`.

@@ -135,9 +135,6 @@ def get_main_df(
         metrics_df.num_memories_recalled + 1
     )  # for 1-based indexing
 
-    # Calculate for the varying parameter
-    #############dft = metrics_df.groupby("param").apply(np.mean)
     print("Done!")
 
-    #########return dft
     return metrics_df
