@@ -127,3 +127,6 @@ dmypy.json
 
 # simulation files
 *.npy
+
+# figures
+figures
