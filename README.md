@@ -61,8 +61,8 @@ Structure
 ---------
 
 ```
-├── debug                             # cluster slurm debug information
 ├── figures                           # figures are saved here
+├── logs                              # cluster slurm debug information
 ├── parameters                        # all values for parameters
 │   ├── ranges.csv                    # parameter sweeps for figures
 │   └── simulation.csv                # parameters for main simulations

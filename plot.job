@@ -1,11 +1,11 @@
 #!/bin/bash
 ############## This section states the requirements the job requires:
 #SBATCH --job-name=re2015p
-#SBATCH --time 05:00
+#SBATCH --time 15:00
 #SBATCH -c 1
 #SBATCH --mem=16000MB
 #SBATCH --ntasks=1
-#SBATCH -o out/log.out
+#SBATCH -o logs/log.out
 ############## Here starts the actual UNIX commands and payload:
 
 module purge

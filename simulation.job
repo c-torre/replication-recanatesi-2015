@@ -6,7 +6,7 @@
 #SBATCH --mem=70000MB
 #SBATCH --ntasks=1
 #SBATCH --array=0-9999
-#SBATCH -o out/log.out
+#SBATCH -o logs/log.out
 ############## Here starts the actual UNIX commands and payload:
 
 module purge
