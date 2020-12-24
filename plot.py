@@ -24,23 +24,39 @@ def plot_parameter_sweep(
     patterns_path: str,
     recalls_path: str,
     name_filter: str,
+    title: str,
     xlabel: str,
     ylabel: str,
     file_name: str,
+    panel_num: int,
 ) -> None:
     """Plots the parameter sweeps"""
 
     def plot(
         df: pd.DataFrame,
+        title: str,
         xlabel: str,
         ylabel: str,
+        panel_num: int,
         file_name: str,
     ) -> None:
 
-        plt.plot(df["param"], df["num_memories_recalled"], "-o", linewidth="0.5")
-        plt.xlabel(xlabel)
-        plt.ylabel(ylabel)
-        plt.yticks(range(16))
+        fig, axis = plt.subplots()
+        axis.plot(df["param"], df["num_memories_recalled"], "-o", linewidth="0.5")
+        axis.set_title(title)
+        axis.set_xlabel(xlabel)
+        axis.set_ylabel(ylabel)
+        axis.set_yticks(range(16))
+
+        axis.text(
+            -0.2,
+            1.2,
+            string.ascii_uppercase[panel_num],
+            transform=axis.transAxes,
+            size=20,
+            weight="bold",
+        )
+
         plt.tight_layout()
         plt.savefig(os.path.join(paths.FIGURES_DIR, file_name))
         plt.close("all")
@@ -78,7 +94,7 @@ def plot_parameter_sweep(
     # Calculate for the varying parameter
     metrics_df = metrics_df.groupby("param").apply(np.mean)
 
-    plot(metrics_df, xlabel, ylabel, file_name)
+    plot(metrics_df, title, xlabel, ylabel, panel_num, file_name)
 
 
 def plot_analysis(name_filter: str) -> None:
@@ -356,17 +372,19 @@ def plot_all() -> None:
 
     plot_analysis(name_filter=".npy")
 
-    # # 0
-    # plot_parameter_sweep(
-    #     parameter="noise_var",
-    #     sims_path=paths.SIMS_NOISE_STD_DIR,
-    #     patterns_path=paths.PATTERNS_NOISE_STD_DIR,
-    #     recalls_path=paths.RECALLS_NOISE_STD_DIR,
-    #     name_filter=".npy",
-    #     xlabel="Noise standard deviation",
-    #     ylabel="Average words recalled",
-    #     file_na="noise_var.pdf",
-    # )
+    # 0
+    plot_parameter_sweep(
+        parameter="noise_var",
+        sims_path=paths.SIMS_NOISE_STD_DIR,
+        patterns_path=paths.PATTERNS_NOISE_STD_DIR,
+        recalls_path=paths.RECALLS_NOISE_STD_DIR,
+        name_filter=".npy",
+        title="Recalls Noise Variance",
+        xlabel="Noise standard deviation",
+        ylabel="Average words recalled",
+        file_name="noise_var.pdf",
+        panel_num=0,
+    )
 
     # 1
     plot_parameter_sweep(
@@ -375,22 +393,26 @@ def plot_all() -> None:
         patterns_path=paths.PATTERNS_CONT_FORTH_DIR,
         recalls_path=paths.RECALLS_CONT_FORTH_DIR,
         name_filter=".npy",
+        title="Recalls Forward Contiguity",
         xlabel="Forward contiguity",
         ylabel="Average words recalled",
         file_name="cont_forth.pdf",
+        panel_num=1,
     )
 
-    # # 2
-    # plot_parameter_sweep(
-    #     parameter="cont_forth",
-    #     sims_path=paths.SIMS_CONT_FORTH_LOW_DIR,
-    #     patterns_path=paths.PATTERNS_CONT_FORTH_LOW_DIR,
-    #     recalls_path=paths.RECALLS_CONT_FORTH_LOW_DIR,
-    #     name_filter=".npy",
-    #     xlabel="Forward contiguity",
-    #     ylabel="Average words recalled",
-    #     file_na="cont_forth_low.pdf",
-    # )
+    # 2
+    plot_parameter_sweep(
+        parameter="cont_forth",
+        sims_path=paths.SIMS_CONT_FORTH_LOW_DIR,
+        patterns_path=paths.PATTERNS_CONT_FORTH_LOW_DIR,
+        recalls_path=paths.RECALLS_CONT_FORTH_LOW_DIR,
+        name_filter=".npy",
+        title="Recalls Low Forward Contiguity",
+        xlabel="Forward contiguity",
+        ylabel="Average words recalled",
+        file_name="cont_forth_low.pdf",
+        panel_num=2,
+    )
 
 
 if __name__ == "__main__":

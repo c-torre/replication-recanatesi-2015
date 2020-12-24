@@ -79,9 +79,6 @@ def make_similarity(
     for similarity_path in tqdm(sorted(similarity_paths)):
         similarities.append(np.load(similarity_path))
 
-    # similarities = np.stack(
-    #     [np.load(similarity_path) for similarity_path in sorted(similarity_paths)]
-    # )
     print("Done!")
     return np.stack(similarities)
 
@@ -121,6 +118,19 @@ def get_main_df(
             "ranks": ranks,
             "param": param,
         }
+
+
+        # Avoid problematic files
+        if (
+            not dicttrial["items"].shape
+            == dicttrial["times"].shape
+            == dicttrial["irts"].shape
+            == dicttrial["sizes"].shape
+            == dicttrial["intersections"].shape
+            == dicttrial["ranks"].shape
+        ):
+            continue
+
         trial_df = pd.DataFrame.from_dict(dicttrial)
         metrics_df = metrics_df.append(trial_df)
 
