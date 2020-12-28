@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.4396275.svg)](https://doi.org/10.5281/zenodo.4396275)
+
 Replication of Recanatesi et al. (2015) "Neural Network Model of Memory Retrieval"
 ==================================================================================
 
