@@ -130,5 +130,7 @@ dmypy.json
 
 # figures
 figures/*
+
+# debug info
 *.out
 .last_pid
