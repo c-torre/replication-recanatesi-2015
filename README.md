@@ -82,7 +82,6 @@ Structure
 │
 ├── .gitignore                        # files ignored by git
 ├── LICENSE                           # GPLv3
-├── metadata.tex                      # metadata file for ReScience
 ├── plot.job                          # plotting at cluster
 ├── plot.py                           # plotting functions
 ├── re-neural-network-model...pdf     # replication paper
