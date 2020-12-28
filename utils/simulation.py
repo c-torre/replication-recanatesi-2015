@@ -2,7 +2,7 @@
 Copyright (C) <2019-2020>  <de la Torre-Ortiz C, Nioche A>
 See the 'LICENSE' file for details.
 
-Plotting functions.
+Auxiliary functions.
 """
 
 import os

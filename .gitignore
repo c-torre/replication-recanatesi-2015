@@ -129,5 +129,6 @@ dmypy.json
 *.npy
 
 # figures
-figures
+figures/*
 *.out
+.last_pid

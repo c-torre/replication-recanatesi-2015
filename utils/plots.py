@@ -72,7 +72,7 @@ def plot_lines(
     t_tot_plot = int(num_oscillations / t_step)
     array = array[:, :t_tot_plot]
     num_memories = array.shape[0]
-    tick_labels = np.hstack(([0], np.arange(0, num_memories, 2)))
+    tick_labels = np.hstack(([0], np.arange(0, num_oscillations, 2)))
 
     fig, axis = plt.subplots()
 

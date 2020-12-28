@@ -160,12 +160,14 @@ def plot_analysis(name_filter: str) -> None:
         recalls_bincum = np.cumsum(recalls_bin, axis=1)
         recalls_mean = np.mean(recalls_bincum, axis=0) * mid_memory
         recalls_mean = recalls_mean * mid_memory / 50
+        tick_labels = np.arange(len(recalls_mean), dtype=int) * 100
 
         fig, axis = plt.subplots()
         axis.plot(recalls_mean)
         axis.set_title("Average Words Recalled")
         axis.set_xlabel("Time steps")
         axis.set_ylabel("Average words recalled")
+        axis.set_xticklabels(tick_labels)
 
         axis.text(
             -0.2,

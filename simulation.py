@@ -30,8 +30,8 @@ from settings import paths
 # -------------------- Change parameters if needed here -------------------- #
 # -------------------------------------------------------------------------- #
 
-PATTERNS_DIR = paths.PATTERNS_CONT_FORTH_DIR  # paths. ...
-RECALLS_DIR = paths.RECALLS_CONT_FORTH_DIR  # paths. ...
+PATTERNS_DIR = paths.PATTERNS_CONT_FORTH_LOW_DIR  # paths. ...
+RECALLS_DIR = paths.RECALLS_CONT_FORTH_LOW_DIR  # paths. ...
 
 assert (
     PATTERNS_DIR is not None and RECALLS_DIR is not None
@@ -74,8 +74,8 @@ NOISE_VAR = PARAMETERS_DF.loc["noise_var"].array[0]
 CONT_FORTH = PARAMETERS_DF.loc["cont_forth"].array[0] / NUM_NEURONS
 CONT_BACK = PARAMETERS_DF.loc["cont_back"].array[0] / NUM_NEURONS
 # For parameter sweeps (uncomment to select)
-CONT_FORTH = sim.get_simulation_range_param("cont_forth", JOB_ID, 100) / NUM_NEURONS
-# CONT_FORTH = sim.get_simulation_range_param("cont_forth_low", JOB_ID, 100) / NUM_NEURONS
+# CONT_FORTH = sim.get_simulation_range_param("cont_forth", JOB_ID, 100) / NUM_NEURONS
+CONT_FORTH = sim.get_simulation_range_param("cont_forth_low", JOB_ID, 100) / NUM_NEURONS
 # NOISE_VAR = sim.get_simulation_range_param("noise_var", JOB_ID, 100)
 
 # -------------------------------------------------------------------------- #
@@ -191,10 +191,12 @@ np.save(
 if JOB_ID == 33:
 
     # Dynamics
+    print("Preparing to plot dynamics")
     currents_memories = sim.get_dynamics_memories(
         currents, population_sizes, connectivity_reg, memories_similarities
     )
     currents_populations = (population_sizes * currents.T).T
+    print("Done!")
 
     plots.plot_firing_rates_attractors(firing_rates_memories, T_STEP, 15, 0)
     plots.plot_lines(
