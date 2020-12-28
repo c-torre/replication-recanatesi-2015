@@ -67,12 +67,12 @@ Structure
 │   ├── ranges.csv                    # parameter sweeps for figures
 │   └── simulation.csv                # parameters for main simulations
 │
+├── settings                          # developer settings
+│   └── paths.py                      # project file paths
+│
 ├── simulations                       # will contain simulation results
 │   └── *param*                       # parameters; recalls and patters binaries
 │        └── parameters.csv           # simulated parameters used for plotting
-│
-├── settings                          # developer settings
-│   └── paths.py                      # project file paths
 │
 ├── utils                             # misc functions
 │   ├── file_loading.py               # loads and checks files before plotting
