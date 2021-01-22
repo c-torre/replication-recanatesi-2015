@@ -1,0 +1,54 @@
+{
+    "@context": "https://doi.org/10.5063/schema/codemeta-2.0",
+    "@type": "SoftwareSourceCode",
+    "license": "https://spdx.org/licenses/GPL-3.0+",
+    "dateCreated": "2019-11-08",
+    "datePublished": "2019-11-08",
+    "downloadUrl": "https://github.com/c-torre/replication-recanatesi-2015/",
+    "name": "Replication Recanatesi 2015",
+    "description": "Replication of Recanatesi et al. (2015) https://www.frontiersin.org/articles/10.3389/fncom.2015.00149/full",
+    "applicationCategory": "Computational Neuroscience",
+    "keywords": [
+        "attractor neural networks",
+        "recall",
+        "oscillations",
+        "memory",
+        "neural representations"
+    ],
+    "programmingLanguage": [
+        "Python 3"
+    ],
+    "operatingSystem": [
+        "GNU",
+        "Linux"
+    ],
+    "softwareRequirements": [
+        "Parabola GNU/Linux-libre-5.7.10 x86_64 (local)",
+        "CentOS GNU/Linux 7.8.2003 (cluster)",
+        "Python 3.7.7"
+    ],
+    "author": [
+        {
+            "@type": "Person",
+            "@id": "https://orcid.org/0000-0002-7457-5216",
+            "givenName": "Carlos",
+            "familyName": "de la Torre-Ortiz",
+            "email": "carlos.delatorreortiz@helsinki.fi",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "Aalto University, Department of Communications and Networking, Helsinki, Finland"
+            }
+        },
+        {
+            "@type": "Person",
+            "@id": "https://orcid.org/0000-0002-0567-2637",
+            "givenName": "Aurélien",
+            "familyName": "Nioche",
+            "email": "nioche.aurelien@gmail.com",
+            "affiliation": {
+                "@type": "Organization",
+                "name": "Aalto University, Department of Communications and Networking, Helsinki, Finland"
+            }
+        }
+    ]
+}
