@@ -83,7 +83,9 @@ Structure
 │   └── simulation.csv                # parameters for main simulations
 │
 ├── .gitignore                        # files ignored by git
+├── AUTHORS                           # Authors information
 ├── LICENSE                           # GPLv3
+├── codemeta.json                     # Metadata for software heritage
 ├── plot.job                          # plotting at cluster
 ├── plot.py                           # plotting functions
 ├── re-neural-network-model...pdf     # replication paper
