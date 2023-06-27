@@ -13,10 +13,26 @@ Recanatesi *et al.* present a model of memory retrieval based on a Hopfield mode
 Dependencies
 ------------
 
-Python 3 with packages in `requirements.txt`.
+Using [GNU Guix](https://guix.gnu.org), set up the complete software
+environment with:
 
 ```
-$ pip install -r requirements
+guix time-machine -C channels.scm -- \
+  shell -m manifest.scm --container
+```
+
+The `channels.scm` file instructs how to [replicate the exact Guix
+revision used for
+testing](https://guix.gnu.org/manual/en/html_node/Replicating-Guix.html),
+while `manifest.scm` defines [the software
+environment](https://guix.gnu.org/manual/en/html_node/Writing-Manifests.html)
+of this computational experiment.
+
+Alternatively, if you are not using Guix, install Python 3 and then
+install all the packages in `requirements.txt` with:
+
+```
+pip install -r requirements
 ```
 
 Usage
