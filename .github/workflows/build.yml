@@ -1,0 +1,21 @@
+name: build
+on: [ push ]
+jobs:
+  build:
+    name: Build environment
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Guix cache
+        uses: actions/cache@v2
+        with:
+          path: ~/.cache/guix
+          # use a key that (almost) never matches
+          key: guix-cache-${{ github.sha }}
+          restore-keys: |
+            guix-cache-
+      - name: Install Guix
+        uses: PromyLOPh/guix-install-action@v1
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Build environment
+        run: guix time-machine -C channels.scm -- shell -m manifest.scm -- python --version
