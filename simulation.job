@@ -1,18 +1,17 @@
-#!/bin/bash
+#!/bin/sh
 ############## This section states the requirements the job requires:
 #SBATCH --job-name=rec2015
 #SBATCH --time 3:00:00
 #SBATCH -c 1
 #SBATCH --mem=70000MB
 #SBATCH --ntasks=1
-#SBATCH --array=0-9999
+###SBATCH --array=0-9999  # FIXME: not working with slurm@22.05
 #SBATCH -o logs/log.out
 ############## Here starts the actual UNIX commands and payload:
 
-module purge
-module load anaconda
-
-srun python simulation.py $SLURM_ARRAY_TASK_ID
+exec guix time-machine -C channels.scm --		\
+     shell -m manifest.scm --pure --			\
+     srun python simulation.py $SLURM_ARRAY_TASK_ID
 
 # Make sure to edit according to your needs, especially:
 # - Working directory (under a "SBATCH" line)

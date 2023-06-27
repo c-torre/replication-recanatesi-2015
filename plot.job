@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 ############## This section states the requirements the job requires:
 #SBATCH --job-name=re2015p
 #SBATCH --time 15:00
@@ -8,10 +8,9 @@
 #SBATCH -o logs/log.out
 ############## Here starts the actual UNIX commands and payload:
 
-module purge
-module load anaconda
-
-srun python plot.py
+exec guix time-machine -C channels.scm --	\
+     shell -m manifest.scm --pure --		\
+     srun python plot.py
 
 # Make sure to edit according to your needs, especially:
 # - Working directory (under a "SBATCH" line)
